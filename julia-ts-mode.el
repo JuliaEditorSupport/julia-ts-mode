@@ -195,6 +195,7 @@ Otherwise, the indentation is:
      ((node-is "catch") parent-bol 0)
      ((node-is "finally") parent-bol 0)
      ((node-is ")") parent-bol 0)
+     ((node-is "]") parent-bol 0)
      ((parent-is "_statement") parent-bol julia-ts-mode-indent-offset)
      ((parent-is "_declaration") parent-bol julia-ts-mode-indent-offset)
      ((parent-is "_expression") parent-bol julia-ts-mode-indent-offset)
