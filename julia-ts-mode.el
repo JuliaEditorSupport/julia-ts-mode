@@ -120,17 +120,15 @@ Otherwise, the indentation is:
 
 (defvar julia-ts-mode--keywords
   '("baremodule" "begin" "catch" "const" "do" "else" "elseif" "end" "export"
-    "finally" "for" "function" "global" "if" "import" "let" "local" "macro"
-    "quote" "return" "try" "using" "where" "while")
+    "finally" "for" "function" "global" "if" "let" "local" "macro" "quote"
+    "return" "try" "where" "while" )
   "Keywords for `julia-ts-mode'.")
 
 (defvar julia-ts-mode--treesit-font-lock-settings
   (treesit-font-lock-rules
    :language 'julia
    :feature 'constant
-   `((true) @font-lock-constant-face
-     (false) @font-lock-constant-face
-     (quote_expression) @julia-ts-mode-quoted-symbol-face
+   `((quote_expression) @julia-ts-mode-quoted-symbol-face
      ((identifier) @font-lock-builtin-face
       (:match
        "^\\(:?NaN\\|NaN16\\|NaN32\\|NaN64\\|nothing\\|missing\\|undef\\)$"
@@ -149,11 +147,14 @@ Otherwise, the indentation is:
 
    :language 'julia
    :feature 'keyword
-   `(([,@julia-ts-mode--keywords]) @font-lock-keyword-face)
+   `((import_statement ["import" "using"] @font-lock-keyword-face)
+     (struct_definition ["mutable" "struct"] @font-lock-keyword-face)
+     ([,@julia-ts-mode--keywords]) @font-lock-keyword-face)
 
    :language 'julia
    :feature 'literal
-   `((character_literal) @font-lock-constant-face
+   `((boolean_literal) @font-lock-constant-face
+     (character_literal) @font-lock-constant-face
      (integer_literal) @font-lock-constant-face
      (float_literal) @font-lock-constant-face)
 
@@ -173,18 +174,22 @@ Otherwise, the indentation is:
      (string_literal) @font-lock-string-face
      (prefixed_string_literal) @font-lock-string-face)
 
+   ;; We need to override this feature because otherwise in statements like:
+   ;;     a::Union{Int, NTuple{4, Char}}
+   ;; the type is not fontified correctly due to the integer literal.
    :language 'julia
    :feature 'type
-   `((constrained_type_parameter
-      supertype: (identifier) @font-lock-type-face)
-     (constrained_type_parameter
-      supertype: (parametrized_type_expression) @font-lock-type-face)
-     (subtype_clause (parametrized_type_expression) @font-lock-type-face)
+   :override t
+   `((type_clause "<:" (_) @font-lock-type-face)
+     (typed_expression (identifier) "::" (_) @font-lock-type-face)
      (typed_parameter
-      type: (identifier) @font-lock-type-face)
-     (typed_parameter
-      type: (parametrized_type_expression) @font-lock-type-face)
-     ((typed_expression (identifier) (identifier) @font-lock-type-face))))
+      type: (_) @font-lock-type-face)
+     (where_clause "where"
+                   (curly_expression "{"
+                                     (binary_expression (identifier)
+                                                        (operator)
+                                                        (_)
+                                                        @font-lock-type-face)))))
   "Tree-sitter font-lock settings for `julia-ts-mode'.")
 
 (defvar julia-ts-mode--treesit-indent-rules
@@ -197,7 +202,7 @@ Otherwise, the indentation is:
      ((node-is ")") parent-bol 0)
      ((node-is "]") parent-bol 0)
      ((parent-is "_statement") parent-bol julia-ts-mode-indent-offset)
-     ((parent-is "_declaration") parent-bol julia-ts-mode-indent-offset)
+     ((parent-is "_definition") parent-bol julia-ts-mode-indent-offset)
      ((parent-is "_expression") parent-bol julia-ts-mode-indent-offset)
      ((parent-is "_clause") parent-bol julia-ts-mode-indent-offset)
      ,@(if julia-ts-mode-align-parameter-list-to-first-sibling
