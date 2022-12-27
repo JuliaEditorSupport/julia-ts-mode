@@ -147,7 +147,8 @@ Otherwise, the indentation is:
 
    :language 'julia
    :feature 'keyword
-   `((import_statement ["import" "using"] @font-lock-keyword-face)
+   `((abstract_definition) @font-lock-keyword-face
+     (import_statement ["import" "using"] @font-lock-keyword-face)
      (struct_definition ["mutable" "struct"] @font-lock-keyword-face)
      ([,@julia-ts-mode--keywords]) @font-lock-keyword-face)
 
@@ -194,6 +195,7 @@ Otherwise, the indentation is:
 
 (defvar julia-ts-mode--treesit-indent-rules
   `((julia
+     ((parent-is "abstract_definition") parent-bol 0)
      ((node-is "end") (and parent parent-bol) 0)
      ((node-is "elseif") parent-bol 0)
      ((node-is "else") parent-bol 0)
