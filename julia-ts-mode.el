@@ -231,7 +231,17 @@ Otherwise, the indentation is:
              "end"))
 
   (treesit-parser-create 'julia)
+
+  ;; Indent.
   (setq-local treesit-simple-indent-rules julia-ts-mode--treesit-indent-rules)
+
+  ;; Navigation.
+  (setq-local treesit-defun-prefer-top-level t)
+  (setq-local treesit-defun-type-regexp
+              (rx (or "function_definition"
+                      "struct_definition")))
+
+  ;; Fontification
   (setq-local treesit-font-lock-settings julia-ts-mode--treesit-font-lock-settings)
   (setq-local treesit-font-lock-feature-list
               '((comment definition)
