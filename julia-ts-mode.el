@@ -154,10 +154,10 @@ Otherwise, the indentation is:
 
    :language 'julia
    :feature 'literal
-   `((boolean_literal) @font-lock-constant-face
-     (character_literal) @font-lock-constant-face
-     (integer_literal) @font-lock-constant-face
-     (float_literal) @font-lock-constant-face)
+   `([(boolean_literal)
+      (character_literal)
+      (integer_literal)
+      (float_literal)] @font-lock-constant-face)
 
    :language 'julia
    :feature 'macro_call
@@ -170,10 +170,10 @@ Otherwise, the indentation is:
 
    :language 'julia
    :feature 'string
-   `((command_literal) @font-lock-string-face
-     (prefixed_command_literal) @font-lock-string-face
-     (string_literal) @font-lock-string-face
-     (prefixed_string_literal) @font-lock-string-face)
+   `([(command_literal)
+      (prefixed_command_literal)
+      (string_literal)
+      (prefixed_string_literal)] @font-lock-string-face)
 
    ;; We need to override this feature because otherwise in statements like:
    ;;     a::Union{Int, NTuple{4, Char}}
