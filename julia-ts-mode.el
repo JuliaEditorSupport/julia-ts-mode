@@ -215,50 +215,16 @@ Otherwise, the indentation is:
      (no-node parent-bol 0)))
   "Tree-sitter indent rules for `julia-ts-mode'.")
 
-;; This function was adapted from the version in `go-ts-mode'.
-(defun julia-ts-mode--imenu ()
-  "Return Imenu alist for the current buffer."
-  (let* ((node (treesit-buffer-root-node))
-         (abst-tree (treesit-induce-sparse-tree
-                     node "abstract_definition"))
-         (func-tree (treesit-induce-sparse-tree
-                     node "function_definition"))
-         (struct-tree (treesit-induce-sparse-tree
-                     node "struct_definition"))
-         (abst-index (julia-ts-mode--imenu-1 abst-tree))
-         (func-index (julia-ts-mode--imenu-1 func-tree))
-         (struct-index (julia-ts-mode--imenu-1 struct-tree)))
-    (append
-     (when abst-index `(("Abstract type" . ,abst-index)))
-     (when func-index `(("Function" . ,func-index)))
-     (when struct-index `(("Structure" . ,struct-index))))))
-
-;; This function was adapted from the version in `go-ts-mode'.
-(defun julia-ts-mode--imenu-1 (node)
-  "Helper for `julia-ts-mode--imenu'.
-Find string representation for NODE and set marker, then recurse the subtrees."
-  (let* ((ts-node (car node))
-         (children (cdr node))
-         (subtrees (mapcan #'julia-ts-mode--imenu-1
-                           children))
-         (name (when ts-node
-                 (treesit-node-text
-                  (pcase (treesit-node-type ts-node)
-                    ("abstract_definition"
-                     (treesit-node-child-by-field-name ts-node "name"))
-                    ("function_definition"
-                     (treesit-node-child-by-field-name ts-node "name"))
-                    ("struct_definition"
-                     (treesit-node-child-by-field-name ts-node "name"))))))
-         (marker (when ts-node
-                   (set-marker (make-marker)
-                               (treesit-node-start ts-node)))))
-    (cond
-     ((or (null ts-node) (null name)) subtrees)
-     (subtrees
-      `((,name ,(cons name marker) ,@subtrees)))
-     (t
-      `((,name . ,marker))))))
+(defun julia-ts-mode--defun-name (node)
+  "Return the defun name of NODE.
+Return nil if there is no name or if NODE is not a defun node."
+  (pcase (treesit-node-type node)
+    ((or "abstract_definition"
+         "function_definition"
+         "struct_definition")
+     (treesit-node-text
+      (treesit-node-child-by-field-name node "name")
+      t))))
 
 ;;;###autoload
 (define-derived-mode julia-ts-mode prog-mode "Julia"
@@ -278,9 +244,6 @@ Find string representation for NODE and set marker, then recurse the subtrees."
 
   (treesit-parser-create 'julia)
 
-  ;; Imenu.
-  (setq-local imenu-create-index-function #'julia-ts-mode--imenu)
-
   ;; Indent.
   (setq-local treesit-simple-indent-rules julia-ts-mode--treesit-indent-rules)
 
@@ -289,6 +252,13 @@ Find string representation for NODE and set marker, then recurse the subtrees."
   (setq-local treesit-defun-type-regexp
               (rx (or "function_definition"
                       "struct_definition")))
+  (setq-local treesit-defun-name-function #'julia-ts-mode--defun-name)
+
+  ;; Imenu.
+  (setq-local treesit-simple-imenu-settings
+              `(("Abstract" "\\`abstract_definition\\'" nil nil)
+                ("Function" "\\`function_definition\\'" nil nil)
+                ("Struct" "\\`struct_definition\\'" nil nil)))
 
   ;; Fontification
   (setq-local treesit-font-lock-settings julia-ts-mode--treesit-font-lock-settings)
