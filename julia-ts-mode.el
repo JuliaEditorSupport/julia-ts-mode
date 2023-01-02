@@ -57,13 +57,34 @@ Otherwise, the indentation is:
         c
     )
 "
-  :version "29"
+  :version "29.1"
+  :type 'boolean
+  :group 'julia)
+
+(defcustom julia-ts-mode-align-argument-list-to-first-sibling nil
+  "Align the argument list to the first sibling.
+
+If it is set to `t', the following indentation is used:
+
+    myfunc(a,
+           b,
+           c)
+
+Otherwise, the indentation is:
+
+    myfunc(
+        a,
+        b,
+        c
+    )
+"
+  :version "29.1"
   :type 'boolean
   :group 'julia)
 
 (defcustom julia-ts-mode-indent-offset 4
   "Number of spaces for each indentation step in `julia-ts-mode'."
-  :version "29"
+  :version "29.1"
   :type 'integer
   :safe 'intergerp
   :group 'julia)
@@ -207,6 +228,9 @@ Otherwise, the indentation is:
      ((parent-is "_definition") parent-bol julia-ts-mode-indent-offset)
      ((parent-is "_expression") parent-bol julia-ts-mode-indent-offset)
      ((parent-is "_clause") parent-bol julia-ts-mode-indent-offset)
+     ,@(if julia-ts-mode-align-argument-list-to-first-sibling
+           (list '((parent-is "argument_list") first-sibling 1))
+         (list '((parent-is "argument_list") parent-bol julia-ts-mode-indent-offset)))
      ,@(if julia-ts-mode-align-parameter-list-to-first-sibling
            (list '((parent-is "parameter_list") first-sibling 1))
          (list '((parent-is "parameter_list") parent-bol julia-ts-mode-indent-offset)))
