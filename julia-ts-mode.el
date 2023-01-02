@@ -256,8 +256,7 @@ Return nil if there is no name or if NODE is not a defun node."
 
   ;; Imenu.
   (setq-local treesit-simple-imenu-settings
-              `(("Abstract" "\\`abstract_definition\\'" nil nil)
-                ("Function" "\\`function_definition\\'" nil nil)
+              `(("Function" "\\`function_definition\\'" nil nil)
                 ("Struct" "\\`struct_definition\\'" nil nil)))
 
   ;; Fontification
