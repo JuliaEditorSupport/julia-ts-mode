@@ -37,6 +37,7 @@
 ;; WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 (require 'treesit)
+(eval-when-compile (require 'rx))
 
 (declare-function treesit-parser-create "treesit.c")
 
@@ -261,11 +262,15 @@ Return nil if there is no name or if NODE is not a defun node."
 
   (treesit-parser-create 'julia)
 
+  ;; Comments.
+  (setq-local comment-start "# ")
+  (setq-local comment-end "")
+  (setq-local comment-start-skip (rx "#" (* (syntax whitespace))))
+
   ;; Indent.
   (setq-local treesit-simple-indent-rules julia-ts-mode--treesit-indent-rules)
 
   ;; Navigation.
-  (setq-local treesit-defun-prefer-top-level t)
   (setq-local treesit-defun-type-regexp
               (rx (or "function_definition"
                       "struct_definition")))
