@@ -203,7 +203,7 @@ Otherwise, the indentation is:
    :feature 'type
    :override t
    `((type_clause "<:" (_) @font-lock-type-face)
-     (typed_expression (identifier) "::" (_) @font-lock-type-face)
+     (typed_expression (_) "::" (_) @font-lock-type-face)
      (typed_parameter
       type: (_) @font-lock-type-face)
      (where_clause "where"
