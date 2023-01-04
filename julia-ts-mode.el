@@ -259,13 +259,6 @@ Return nil if there is no name or if NODE is not a defun node."
   (unless (treesit-ready-p 'julia)
     (error "Tree-sitter for Julia is not available"))
 
-  (set-electric! 'julia-ts-mode
-    :words '("catch"
-             "else"
-             "elseif"
-             "finally"
-             "end"))
-
   (treesit-parser-create 'julia)
 
   ;; Indent.
