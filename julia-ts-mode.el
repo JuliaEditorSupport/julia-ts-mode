@@ -158,7 +158,8 @@ Otherwise, the indentation is:
 
    :language 'julia
    :feature 'comment
-   `((line_comment) @font-lock-comment-face)
+   `((line_comment) @font-lock-comment-face
+     (block_comment) @font-lock-comment-face)
 
    :language 'julia
    :feature 'definition
