@@ -142,8 +142,8 @@ Otherwise, the indentation is:
 
 (defvar julia-ts-mode--keywords
   '("baremodule" "begin" "catch" "const" "do" "else" "elseif" "end" "export"
-    "finally" "for" "function" "global" "if" "let" "local" "macro" "quote"
-    "return" "try" "where" "while" )
+    "finally" "for" "function" "global" "if" "let" "local" "macro" "module"
+    "quote" "return" "try" "where" "while")
   "Keywords for `julia-ts-mode'.")
 
 (defvar julia-ts-mode--treesit-font-lock-settings
