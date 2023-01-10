@@ -215,7 +215,8 @@ Otherwise, the indentation is:
 
    :language 'julia
    :feature 'operator
-   `((operator) @font-lock-type-face
+   `((let_binding "=" @font-lock-type-face)
+     (operator) @font-lock-type-face
      (ternary_expression ["?" ":"] @font-lock-type-face))
 
    :language 'julia
