@@ -102,6 +102,10 @@ Otherwise, the indentation is:
   '((t :inherit font-lock-constant-face))
   "Face for interpolation expressions in `julia-ts-mode', e.g. :foo.")
 
+(defface julia-ts-mode-string-interpolation-face
+  '((t :inherit font-lock-constant-face :weight bold))
+  "Face for string interpolations in `julia-ts-mode', e.g. :foo.")
+
 ;; The syntax table was copied from the `julia-mode'.
 (defvar julia-ts-mode--syntax-table
   (let ((table (make-syntax-table)))
@@ -173,8 +177,10 @@ Otherwise, the indentation is:
       name: (identifier) @font-lock-function-name-face))
 
    :language 'julia
-   :feature 'interpolation_expression
-   `((interpolation_expression) @julia-ts-mode-interpolation-expression-face)
+   :feature 'interpolation
+   :override 'append
+   `((interpolation_expression) @julia-ts-mode-interpolation-expression-face
+     (string_interpolation) @julia-ts-mode-string-interpolation-face)
 
    :language 'julia
    :feature 'keyword
@@ -201,6 +207,7 @@ Otherwise, the indentation is:
 
    :language 'julia
    :feature 'string
+   :override 'append
    `([(command_literal)
       (prefixed_command_literal)
       (string_literal)
@@ -295,7 +302,7 @@ Return nil if there is no name or if NODE is not a defun node."
   (setq-local treesit-font-lock-feature-list
               '((comment definition)
                 (constant keyword string type)
-                (literal interpolation_expression macro_call)
+                (literal interpolation macro_call)
                 (operator)))
 
   (treesit-major-mode-setup))
