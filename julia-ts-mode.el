@@ -199,6 +199,10 @@ Otherwise, the indentation is:
    :feature 'keyword
    `((abstract_definition) @font-lock-keyword-face
      (import_statement ["import" "using"] @font-lock-keyword-face)
+     ((vector_expression
+       (range_expression
+        (identifier) @font-lock-keyword-face
+        (:match "^\\(:?begin\\|end\\)$" @font-lock-keyword-face))))
      (struct_definition ["mutable" "struct"] @font-lock-keyword-face)
      ([,@julia-ts-mode--keywords]) @font-lock-keyword-face)
 
