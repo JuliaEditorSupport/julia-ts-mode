@@ -177,6 +177,11 @@ Otherwise, the indentation is:
       name: (identifier) @font-lock-function-name-face))
 
    :language 'julia
+   :feature 'error
+   :override t
+   `((ERROR) @font-lock-warning-face)
+
+   :language 'julia
    :feature 'interpolation
    :override 'append
    `((interpolation_expression) @julia-ts-mode-interpolation-expression-face
@@ -303,7 +308,7 @@ Return nil if there is no name or if NODE is not a defun node."
               '((comment definition)
                 (constant keyword string type)
                 (literal interpolation macro_call)
-                (operator)))
+                (error operator)))
 
   (treesit-major-mode-setup))
 
