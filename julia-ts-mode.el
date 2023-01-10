@@ -157,6 +157,14 @@ Otherwise, the indentation is:
 (defvar julia-ts-mode--treesit-font-lock-settings
   (treesit-font-lock-rules
    :language 'julia
+   :feature 'assignment
+   `((assignment (identifier) @font-lock-variable-name-face)
+     (assignment (bare_tuple (identifier) @font-lock-variable-name-face))
+     (local_declaration (identifier) @font-lock-variable-name-face)
+     (let_binding (identifier) @font-lock-variable-name-face)
+     (global_declaration (identifier) @font-lock-variable-name-face))
+
+   :language 'julia
    :feature 'constant
    `((quote_expression) @julia-ts-mode-quoted-symbol-face
      ((identifier) @font-lock-builtin-face
@@ -307,7 +315,7 @@ Return nil if there is no name or if NODE is not a defun node."
   (setq-local treesit-font-lock-feature-list
               '((comment definition)
                 (constant keyword string type)
-                (literal interpolation macro_call)
+                (assignment literal interpolation macro_call)
                 (error operator)))
 
   (treesit-major-mode-setup))
