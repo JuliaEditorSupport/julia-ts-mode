@@ -37,6 +37,7 @@
 ;; WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 (require 'treesit)
+(require 'julia-ts-mode-latexsubs)
 (eval-when-compile (require 'rx))
 
 (declare-function treesit-parser-create "treesit.c")
@@ -327,6 +328,36 @@ Return nil if there is no name or if NODE is not a defun node."
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.jl\\'" . julia-ts-mode))
+
+;; This function was copied from the package `julia-mode'.
+;;
+;; See https://github.com/JuliaLang/julia/issues/8947 to understand why using
+;; TeX input in Emacs is not an option here.
+(defun julia-latexsub ()
+  "Perform a LaTeX-like Unicode symbol substitution."
+  (interactive "*i")
+  (let ((orig-pt (point)))
+    (while (not (or (bobp) (= ?\\ (char-before))
+                    (= ?\s (char-syntax (char-before)))))
+      (backward-char))
+    (if (and (not (bobp)) (= ?\\ (char-before)))
+        (progn
+          (backward-char)
+          (let ((sub (gethash (buffer-substring (point) orig-pt) julia-mode-latexsubs)))
+            (if sub
+                (progn
+                  (delete-region (point) orig-pt)
+                  (insert sub))
+              (goto-char orig-pt))))
+      (goto-char orig-pt))))
+
+;; This function was copied from the package `julia-mode'.
+(defun julia-latexsub-or-indent (arg)
+  "Either indent according to mode or perform a LaTeX-like symbol substitution"
+  (interactive "*i")
+  (if (julia-latexsub)
+      (indent-for-tab-command arg)))
+(define-key julia-ts-mode-map (kbd "TAB") 'julia-latexsub-or-indent)
 
 (provide 'julia-ts-mode)
 
