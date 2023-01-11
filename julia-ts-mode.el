@@ -159,7 +159,7 @@ Otherwise, the indentation is:
   (treesit-font-lock-rules
    :language 'julia
    :feature 'assignment
-   `((assignment (identifier) @font-lock-variable-name-face)
+   `((assignment (identifier) @font-lock-variable-name-face (_))
      (assignment (bare_tuple (identifier) @font-lock-variable-name-face))
      (local_declaration (identifier) @font-lock-variable-name-face)
      (let_binding (identifier) @font-lock-variable-name-face)
