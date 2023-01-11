@@ -160,7 +160,12 @@ Otherwise, the indentation is:
    :language 'julia
    :feature 'assignment
    `((assignment (identifier) @font-lock-variable-name-face (_))
+     (assignment
+      (field_expression (identifier) "." (identifier) @font-lock-variable-name-face))
      (assignment (bare_tuple (identifier) @font-lock-variable-name-face))
+     (assignment
+      (bare_tuple
+       (field_expression (identifier) "." (identifier) @font-lock-variable-name-face)))
      (local_declaration (identifier) @font-lock-variable-name-face)
      (let_binding (identifier) @font-lock-variable-name-face)
      (global_declaration (identifier) @font-lock-variable-name-face))
