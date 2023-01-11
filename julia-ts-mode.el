@@ -37,8 +37,8 @@
 ;; WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 (require 'treesit)
-(require 'julia-ts-mode-latexsubs)
 (eval-when-compile (require 'rx))
+(require 'julia-mode)
 
 (declare-function treesit-parser-create "treesit.c")
 
@@ -106,48 +106,6 @@ Otherwise, the indentation is:
 (defface julia-ts-mode-string-interpolation-face
   '((t :inherit font-lock-constant-face :weight bold))
   "Face for string interpolations in `julia-ts-mode', e.g. :foo.")
-
-;; The syntax table was copied from the `julia-mode'.
-(defvar julia-ts-mode--syntax-table
-  (let ((table (make-syntax-table)))
-    (modify-syntax-entry ?_ "_" table)
-    (modify-syntax-entry ?@ "_" table)
-    (modify-syntax-entry ?! "_" table)
-    (modify-syntax-entry ?# "< 14" table)  ; # single-line and multiline start
-    (modify-syntax-entry ?= ". 23bn" table)
-    (modify-syntax-entry ?\n ">" table)  ; \n single-line comment end
-    (modify-syntax-entry ?\{ "(} " table)
-    (modify-syntax-entry ?\} "){ " table)
-    (modify-syntax-entry ?\[ "(] " table)
-    (modify-syntax-entry ?\] ")[ " table)
-    (modify-syntax-entry ?\( "() " table)
-    (modify-syntax-entry ?\) ")( " table)
-    ;; Here, we treat ' as punctuation (when it's used for transpose),
-    ;; see our use of `julia-char-regex' for handling ' as a character
-    ;; delimiter
-    (modify-syntax-entry ?'  "." table)
-    (modify-syntax-entry ?\" "\"" table)
-    (modify-syntax-entry ?` "\"" table)
-    ;; Backslash has escape syntax for use in strings but
-    ;; julia-syntax-propertize-function sets punctuation syntax on it
-    ;; outside strings.
-    (modify-syntax-entry ?\\ "\\" table)
-
-    (modify-syntax-entry ?. "." table)
-    (modify-syntax-entry ?? "." table)
-    (modify-syntax-entry ?$ "." table)
-    (modify-syntax-entry ?& "." table)
-    (modify-syntax-entry ?* "." table)
-    (modify-syntax-entry ?/ "." table)
-    (modify-syntax-entry ?+ "." table)
-    (modify-syntax-entry ?- "." table)
-    (modify-syntax-entry ?< "." table)
-    (modify-syntax-entry ?> "." table)
-    (modify-syntax-entry ?% "." table)
-
-    (modify-syntax-entry ?′ "w" table) ; \prime is a word constituent
-    table)
-  "Syntax table for `julia-ts-mode'.")
 
 (defvar julia-ts-mode--keywords
   '("baremodule" "begin" "catch" "const" "do" "else" "elseif" "end" "export"
@@ -293,13 +251,20 @@ Return nil if there is no name or if NODE is not a defun node."
       t))))
 
 ;;;###autoload
-(define-derived-mode julia-ts-mode prog-mode "Julia"
+(add-to-list 'auto-mode-alist '("\\.jl\\'" . julia-ts-mode))
+
+;;;###autoload
+(define-derived-mode julia-ts-mode julia-mode "Julia (TS)"
   "Major mode for Julia files using tree-sitter"
   :group 'julia
-  :syntax-table julia-ts-mode--syntax-table
 
   (unless (treesit-ready-p 'julia)
     (error "Tree-sitter for Julia is not available"))
+
+  ;; Override the functions in `julia-mode' that are not needed when using
+  ;; tree-sitter.
+  (setq-local syntax-propertize-function nil)
+  (setq-local indent-line-function nil)
 
   (treesit-parser-create 'julia)
 
@@ -331,39 +296,6 @@ Return nil if there is no name or if NODE is not a defun node."
                 (error operator)))
 
   (treesit-major-mode-setup))
-
-;;;###autoload
-(add-to-list 'auto-mode-alist '("\\.jl\\'" . julia-ts-mode))
-
-;; This function was copied from the package `julia-mode'.
-;;
-;; See https://github.com/JuliaLang/julia/issues/8947 to understand why using
-;; TeX input in Emacs is not an option here.
-(defun julia-latexsub ()
-  "Perform a LaTeX-like Unicode symbol substitution."
-  (interactive "*i")
-  (let ((orig-pt (point)))
-    (while (not (or (bobp) (= ?\\ (char-before))
-                    (= ?\s (char-syntax (char-before)))))
-      (backward-char))
-    (if (and (not (bobp)) (= ?\\ (char-before)))
-        (progn
-          (backward-char)
-          (let ((sub (gethash (buffer-substring (point) orig-pt) julia-mode-latexsubs)))
-            (if sub
-                (progn
-                  (delete-region (point) orig-pt)
-                  (insert sub))
-              (goto-char orig-pt))))
-      (goto-char orig-pt))))
-
-;; This function was copied from the package `julia-mode'.
-(defun julia-latexsub-or-indent (arg)
-  "Either indent according to mode or perform a LaTeX-like symbol substitution"
-  (interactive "*i")
-  (if (julia-latexsub)
-      (indent-for-tab-command arg)))
-(define-key julia-ts-mode-map (kbd "TAB") 'julia-latexsub-or-indent)
 
 (provide 'julia-ts-mode)
 
