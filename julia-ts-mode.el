@@ -258,6 +258,7 @@ Otherwise, the indentation is:
 (defvar julia-ts-mode--treesit-indent-rules
   `((julia
      ((parent-is "abstract_definition") parent-bol 0)
+     ((parent-is "module_definition") parent-bol 0)
      ((node-is "end") (and parent parent-bol) 0)
      ((node-is "elseif") parent-bol 0)
      ((node-is "else") parent-bol 0)
