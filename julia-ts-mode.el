@@ -42,27 +42,6 @@
 
 (declare-function treesit-parser-create "treesit.c")
 
-(defcustom julia-ts-mode-align-parameter-list-to-first-sibling nil
-  "Align the parameter list to the first sibling.
-
-If it is set to `t', the following indentation is used:
-
-    function myfunc(a,
-                    b,
-                    c)
-
-Otherwise, the indentation is:
-
-    function myfunc(
-        a,
-        b,
-        c
-    )
-"
-  :version "29.1"
-  :type 'boolean
-  :group 'julia)
-
 (defcustom julia-ts-mode-align-argument-list-to-first-sibling nil
   "Align the argument list to the first sibling.
 
@@ -75,6 +54,46 @@ If it is set to `t', the following indentation is used:
 Otherwise, the indentation is:
 
     myfunc(
+        a,
+        b,
+        c
+    )
+"
+  :version "29.1"
+  :type 'boolean
+  :group 'julia)
+
+(defcustom julia-ts-mode-align-assignment-expressions-to-first-sibling nil
+  "Align the expressions after an assignment to the first sibling.
+
+If it is set to `t', the following indentation is used:
+
+    var = a + b + c +
+          d + e +
+          f
+
+Otherwise, the indentation is:
+
+    var = a + b + c +
+        d + e +
+        f
+"
+  :version "29.1"
+  :type 'boolean
+  :group 'julia)
+
+(defcustom julia-ts-mode-align-parameter-list-to-first-sibling nil
+  "Align the parameter list to the first sibling.
+
+If it is set to `t', the following indentation is used:
+
+    function myfunc(a,
+                    b,
+                    c)
+
+Otherwise, the indentation is:
+
+    function myfunc(
         a,
         b,
         c
@@ -215,6 +234,14 @@ Otherwise, the indentation is:
                                                         @font-lock-type-face)))))
   "Tree-sitter font-lock settings for `julia-ts-mode'.")
 
+(defun julia-ts-mode--ancestor-is (regexp)
+  "Return the ancestor of NODE that matches `regexp', if it exists."
+  (lambda (node &rest _)
+    (treesit-parent-until
+     node
+     (lambda (node)
+       (string-match-p regexp (treesit-node-type node))))))
+
 (defvar julia-ts-mode--treesit-indent-rules
   `((julia
      ((parent-is "abstract_definition") parent-bol 0)
@@ -226,10 +253,28 @@ Otherwise, the indentation is:
      ((node-is "finally") parent-bol 0)
      ((node-is ")") parent-bol 0)
      ((node-is "]") parent-bol 0)
+
+     ;; We want to increase the indentation only for a certain types of
+     ;; expressions.
+     ((parent-is "curly_expression") parent-bol julia-ts-mode-indent-offset)
+     ((parent-is "parenthesized_expression") parent-bol julia-ts-mode-indent-offset)
+     ((parent-is "tuple_expression") parent-bol julia-ts-mode-indent-offset)
+     ((parent-is "vector_expression") parent-bol julia-ts-mode-indent-offset)
+
+     ;; Match if the node is inside an assignment.
+     ,@(if julia-ts-mode-align-assignment-expressions-to-first-sibling
+           (list '((julia-ts-mode--ancestor-is "assignment") first-sibling 0))
+         (list '((julia-ts-mode--ancestor-is "assignment") parent-bol julia-ts-mode-indent-offset)))
+
+     ;; For all other expressions, keep the indentation as the parent.
+     ((parent-is "_expression") parent-bol 0)
+
+     ;; General indentation rules for blocks.
      ((parent-is "_statement") parent-bol julia-ts-mode-indent-offset)
      ((parent-is "_definition") parent-bol julia-ts-mode-indent-offset)
-     ((parent-is "_expression") parent-bol julia-ts-mode-indent-offset)
      ((parent-is "_clause") parent-bol julia-ts-mode-indent-offset)
+
+     ;; Alignment of argument and parameter lists.
      ,@(if julia-ts-mode-align-argument-list-to-first-sibling
            (list '((parent-is "argument_list") first-sibling 1))
          (list '((parent-is "argument_list") parent-bol julia-ts-mode-indent-offset)))
