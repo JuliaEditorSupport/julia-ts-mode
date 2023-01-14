@@ -266,6 +266,9 @@ Otherwise, the indentation is:
            (list '((julia-ts-mode--ancestor-is "assignment") first-sibling 0))
          (list '((julia-ts-mode--ancestor-is "assignment") parent-bol julia-ts-mode-indent-offset)))
 
+     ;; Align the expressions in the if statement conditions.
+     ((julia-ts-mode--ancestor-is "if_statement") parent-bol julia-ts-mode-indent-offset)
+
      ;; For all other expressions, keep the indentation as the parent.
      ((parent-is "_expression") parent-bol 0)
 
