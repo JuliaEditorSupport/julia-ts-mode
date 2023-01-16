@@ -7,7 +7,7 @@
 ;; Keywords         : julia languages tree-sitter
 ;; Package-Requires : ((emacs "29") (julia-mode "0.4"))
 ;; URL              : https://github.com/ronisbr/julia-ts-mode
-;; Version          : 0.1.0
+;; Version          : 0.2.0
 ;;
 ;;; License:
 ;; Permission is hereby granted, free of charge, to any person obtaining
