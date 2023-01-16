@@ -1,21 +1,14 @@
 ;;; julia-ts-mode.el --- Major mode for Julia source code using tree-sitter -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2022  Ronan Arraes Jardim Chagas
-;; URL: https://github.com/ronisbr/julia-ts-mode
-;; Version: 0.0.1
-;; Keywords: languages
-;; Package-Requires: ((emacs "29"))
-
-;;; Usage:
-;; 1. Install the Julia tree-sitter grammar.
-;; 2. Put the following code in your .emacs, site-load.el, or other relevant
-;;    file:
-;; (add-to-list 'load-path "path-to-julia-ts-mode")
-;; (require 'julia-ts-mode)
-
-;;; Commentary:
-;; This version is highly experimental.
-
+;; Copyright (C) 2022, 2023  Ronan Arraes Jardim Chagas
+;;
+;; Author           : Ronan Arraes Jardim Chagas
+;; Created          : December 2022
+;; Keywords         : julia languages tree-sitter
+;; Package-Requires : ((emacs "29") (julia-mode "0.4"))
+;; URL              : https://github.com/ronisbr/julia-ts-mode
+;; Version          : 0.1.0
+;;
 ;;; License:
 ;; Permission is hereby granted, free of charge, to any person obtaining
 ;; a copy of this software and associated documentation files (the
@@ -35,6 +28,12 @@
 ;; LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 ;; OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 ;; WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+;;
+;;; Commentary:
+;; This major modes uses tree-sitter for font-lock, indentation, imenu, and
+;; navigation. It is derived from `julia-mode'.
+
+;;;; Code:
 
 (require 'treesit)
 (eval-when-compile (require 'rx))
@@ -45,7 +44,7 @@
 (defcustom julia-ts-mode-align-argument-list-to-first-sibling nil
   "Align the argument list to the first sibling.
 
-If it is set to `t', the following indentation is used:
+If it is set to t, the following indentation is used:
 
     myfunc(a,
            b,
@@ -57,8 +56,7 @@ Otherwise, the indentation is:
         a,
         b,
         c
-    )
-"
+    )"
   :version "29.1"
   :type 'boolean
   :group 'julia)
@@ -66,7 +64,7 @@ Otherwise, the indentation is:
 (defcustom julia-ts-mode-align-assignment-expressions-to-first-sibling nil
   "Align the expressions after an assignment to the first sibling.
 
-If it is set to `t', the following indentation is used:
+If it is set to t, the following indentation is used:
 
     var = a + b + c +
           d + e +
@@ -76,8 +74,7 @@ Otherwise, the indentation is:
 
     var = a + b + c +
         d + e +
-        f
-"
+        f"
   :version "29.1"
   :type 'boolean
   :group 'julia)
@@ -85,7 +82,7 @@ Otherwise, the indentation is:
 (defcustom julia-ts-mode-align-parameter-list-to-first-sibling nil
   "Align the parameter list to the first sibling.
 
-If it is set to `t', the following indentation is used:
+If it is set to t, the following indentation is used:
 
     function myfunc(a,
                     b,
@@ -97,8 +94,7 @@ Otherwise, the indentation is:
         a,
         b,
         c
-    )
-"
+    )"
   :version "29.1"
   :type 'boolean
   :group 'julia)
@@ -237,7 +233,7 @@ Otherwise, the indentation is:
   "Tree-sitter font-lock settings for `julia-ts-mode'.")
 
 (defun julia-ts-mode--ancestor-is (regexp)
-  "Return the ancestor of NODE that matches `regexp', if it exists."
+  "Return the ancestor of NODE that matches `REGEXP', if it exists."
   (lambda (node &rest _)
     (treesit-parent-until
      node
@@ -308,7 +304,7 @@ Return nil if there is no name or if NODE is not a defun node."
 
 ;;;###autoload
 (define-derived-mode julia-ts-mode julia-mode "Julia (TS)"
-  "Major mode for Julia files using tree-sitter"
+  "Major mode for Julia files using tree-sitter."
   :group 'julia
 
   (unless (treesit-ready-p 'julia)
