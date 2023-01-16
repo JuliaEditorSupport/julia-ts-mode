@@ -167,6 +167,8 @@ Otherwise, the indentation is:
    `((function_definition
       name: (identifier) @font-lock-function-name-face)
      (macro_definition
+      name: (identifier) @font-lock-function-name-face)
+     (short_function_definition
       name: (identifier) @font-lock-function-name-face))
 
    :language 'julia
@@ -295,6 +297,7 @@ Return nil if there is no name or if NODE is not a defun node."
   (pcase (treesit-node-type node)
     ((or "abstract_definition"
          "function_definition"
+         "short_function_definition"
          "struct_definition")
      (treesit-node-text
       (treesit-node-child-by-field-name node "name")
@@ -334,7 +337,7 @@ Return nil if there is no name or if NODE is not a defun node."
 
   ;; Imenu.
   (setq-local treesit-simple-imenu-settings
-              `(("Function" "\\`function_definition\\'" nil nil)
+              `(("Function" "\\`function_definition\\|short_function_definition\\'" nil nil)
                 ("Struct" "\\`struct_definition\\'" nil nil)))
 
   ;; Fontification
