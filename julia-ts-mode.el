@@ -41,7 +41,14 @@
 
 (declare-function treesit-parser-create "treesit.c")
 
-(defcustom julia-ts-mode-align-argument-list-to-first-sibling nil
+(defgroup julia-ts nil
+  "Major mode for the julia programming language using tree-sitter."
+  :group 'languages
+  :prefix "julia-ts-")
+;; Notice that all custom variables and faces are automatically added to the
+;; most recent group.
+
+(defcustom julia-ts-align-argument-list-to-first-sibling nil
   "Align the argument list to the first sibling.
 
 If it is set to t, the following indentation is used:
@@ -58,10 +65,9 @@ Otherwise, the indentation is:
         c
     )"
   :version "29.1"
-  :type 'boolean
-  :group 'julia)
+  :type 'boolean)
 
-(defcustom julia-ts-mode-align-assignment-expressions-to-first-sibling nil
+(defcustom julia-ts-align-assignment-expressions-to-first-sibling nil
   "Align the expressions after an assignment to the first sibling.
 
 If it is set to t, the following indentation is used:
@@ -76,10 +82,9 @@ Otherwise, the indentation is:
         d + e +
         f"
   :version "29.1"
-  :type 'boolean
-  :group 'julia)
+  :type 'boolean)
 
-(defcustom julia-ts-mode-align-parameter-list-to-first-sibling nil
+(defcustom julia-ts-align-parameter-list-to-first-sibling nil
   "Align the parameter list to the first sibling.
 
 If it is set to t, the following indentation is used:
@@ -96,39 +101,37 @@ Otherwise, the indentation is:
         c
     )"
   :version "29.1"
-  :type 'boolean
-  :group 'julia)
+  :type 'boolean)
 
-(defcustom julia-ts-mode-indent-offset 4
+(defcustom julia-ts-indent-offset 4
   "Number of spaces for each indentation step in `julia-ts-mode'."
   :version "29.1"
   :type 'integer
-  :safe 'intergerp
-  :group 'julia)
+  :safe 'intergerp)
 
-(defface julia-ts-mode-macro-face
+(defface julia-ts-macro-face
   '((t :inherit font-lock-preprocessor-face))
   "Face for Julia macro invocations in `julia-ts-mode'.")
 
-(defface julia-ts-mode-quoted-symbol-face
+(defface julia-ts-quoted-symbol-face
   '((t :inherit font-lock-constant-face))
   "Face for quoted Julia symbols in `julia-ts-mode', e.g. :foo.")
 
-(defface julia-ts-mode-interpolation-expression-face
+(defface julia-ts-interpolation-expression-face
   '((t :inherit font-lock-constant-face))
   "Face for interpolation expressions in `julia-ts-mode', e.g. :foo.")
 
-(defface julia-ts-mode-string-interpolation-face
+(defface julia-ts-string-interpolation-face
   '((t :inherit font-lock-constant-face :weight bold))
   "Face for string interpolations in `julia-ts-mode', e.g. :foo.")
 
-(defvar julia-ts-mode--keywords
+(defvar julia-ts--keywords
   '("baremodule" "begin" "catch" "const" "do" "else" "elseif" "end" "export"
     "finally" "for" "function" "global" "if" "in" "let" "local" "macro" "module"
     "quote" "return" "try" "where" "while")
   "Keywords for `julia-ts-mode'.")
 
-(defvar julia-ts-mode--treesit-font-lock-settings
+(defvar julia-ts--treesit-font-lock-settings
   (treesit-font-lock-rules
    :language 'julia
    :feature 'assignment
@@ -147,7 +150,7 @@ Otherwise, the indentation is:
 
    :language 'julia
    :feature 'constant
-   `((quote_expression) @julia-ts-mode-quoted-symbol-face
+   `((quote_expression) @julia-ts-quoted-symbol-face
      ((identifier) @font-lock-builtin-face
       (:match
        "^\\(:?NaN\\|NaN16\\|NaN32\\|NaN64\\|nothing\\|missing\\|undef\\)$"
@@ -175,8 +178,8 @@ Otherwise, the indentation is:
    :language 'julia
    :feature 'interpolation
    :override 'append
-   `((interpolation_expression) @julia-ts-mode-interpolation-expression-face
-     (string_interpolation) @julia-ts-mode-string-interpolation-face)
+   `((interpolation_expression) @julia-ts-interpolation-expression-face
+     (string_interpolation) @julia-ts-string-interpolation-face)
 
    :language 'julia
    :feature 'keyword
@@ -187,7 +190,7 @@ Otherwise, the indentation is:
         (identifier) @font-lock-keyword-face
         (:match "^\\(:?begin\\|end\\)$" @font-lock-keyword-face))))
      (struct_definition ["mutable" "struct"] @font-lock-keyword-face)
-     ([,@julia-ts-mode--keywords]) @font-lock-keyword-face)
+     ([,@julia-ts--keywords]) @font-lock-keyword-face)
 
    :language 'julia
    :feature 'literal
@@ -198,7 +201,7 @@ Otherwise, the indentation is:
 
    :language 'julia
    :feature 'macro_call
-   `((macro_identifier) @julia-ts-mode-macro-face)
+   `((macro_identifier) @julia-ts-macro-face)
 
    :language 'julia
    :feature 'operator
@@ -232,7 +235,7 @@ Otherwise, the indentation is:
                                                         @font-lock-type-face)))))
   "Tree-sitter font-lock settings for `julia-ts-mode'.")
 
-(defun julia-ts-mode--ancestor-is (regexp)
+(defun julia-ts--ancestor-is (regexp)
   "Return the ancestor of NODE that matches `REGEXP', if it exists."
   (lambda (node &rest _)
     (treesit-parent-until
@@ -240,7 +243,7 @@ Otherwise, the indentation is:
      (lambda (node)
        (string-match-p regexp (treesit-node-type node))))))
 
-(defvar julia-ts-mode--treesit-indent-rules
+(defvar julia-ts--treesit-indent-rules
   `((julia
      ((parent-is "abstract_definition") parent-bol 0)
      ((parent-is "module_definition") parent-bol 0)
@@ -254,40 +257,40 @@ Otherwise, the indentation is:
 
      ;; We want to increase the indentation only for a certain types of
      ;; expressions.
-     ((parent-is "curly_expression") parent-bol julia-ts-mode-indent-offset)
-     ((parent-is "parenthesized_expression") parent-bol julia-ts-mode-indent-offset)
-     ((parent-is "tuple_expression") parent-bol julia-ts-mode-indent-offset)
-     ((parent-is "vector_expression") parent-bol julia-ts-mode-indent-offset)
+     ((parent-is "curly_expression") parent-bol julia-ts-indent-offset)
+     ((parent-is "parenthesized_expression") parent-bol julia-ts-indent-offset)
+     ((parent-is "tuple_expression") parent-bol julia-ts-indent-offset)
+     ((parent-is "vector_expression") parent-bol julia-ts-indent-offset)
 
      ;; Match if the node is inside an assignment.
-     ,@(if julia-ts-mode-align-assignment-expressions-to-first-sibling
-           (list '((julia-ts-mode--ancestor-is "assignment") first-sibling 0))
-         (list '((julia-ts-mode--ancestor-is "assignment") parent-bol julia-ts-mode-indent-offset)))
+     ,@(if julia-ts-align-assignment-expressions-to-first-sibling
+           (list '((julia-ts--ancestor-is "assignment") first-sibling 0))
+         (list '((julia-ts--ancestor-is "assignment") parent-bol julia-ts-indent-offset)))
 
      ;; Align the expressions in the if statement conditions.
-     ((julia-ts-mode--ancestor-is "if_statement") parent-bol julia-ts-mode-indent-offset)
+     ((julia-ts--ancestor-is "if_statement") parent-bol julia-ts-indent-offset)
 
      ;; For all other expressions, keep the indentation as the parent.
      ((parent-is "_expression") parent-bol 0)
 
      ;; General indentation rules for blocks.
-     ((parent-is "_statement") parent-bol julia-ts-mode-indent-offset)
-     ((parent-is "_definition") parent-bol julia-ts-mode-indent-offset)
-     ((parent-is "_clause") parent-bol julia-ts-mode-indent-offset)
+     ((parent-is "_statement") parent-bol julia-ts-indent-offset)
+     ((parent-is "_definition") parent-bol julia-ts-indent-offset)
+     ((parent-is "_clause") parent-bol julia-ts-indent-offset)
 
      ;; Alignment of argument and parameter lists.
-     ,@(if julia-ts-mode-align-argument-list-to-first-sibling
+     ,@(if julia-ts-align-argument-list-to-first-sibling
            (list '((parent-is "argument_list") first-sibling 1))
-         (list '((parent-is "argument_list") parent-bol julia-ts-mode-indent-offset)))
-     ,@(if julia-ts-mode-align-parameter-list-to-first-sibling
+         (list '((parent-is "argument_list") parent-bol julia-ts-indent-offset)))
+     ,@(if julia-ts-align-parameter-list-to-first-sibling
            (list '((parent-is "parameter_list") first-sibling 1))
-         (list '((parent-is "parameter_list") parent-bol julia-ts-mode-indent-offset)))
+         (list '((parent-is "parameter_list") parent-bol julia-ts-indent-offset)))
 
      ;; This rule takes care of blank lines most of the time.
      (no-node parent-bol 0)))
   "Tree-sitter indent rules for `julia-ts-mode'.")
 
-(defun julia-ts-mode--defun-name (node)
+(defun julia-ts--defun-name (node)
   "Return the defun name of NODE.
 Return nil if there is no name or if NODE is not a defun node."
   (pcase (treesit-node-type node)
@@ -323,13 +326,13 @@ Return nil if there is no name or if NODE is not a defun node."
   (setq-local comment-start-skip (rx "#" (* (syntax whitespace))))
 
   ;; Indent.
-  (setq-local treesit-simple-indent-rules julia-ts-mode--treesit-indent-rules)
+  (setq-local treesit-simple-indent-rules julia-ts--treesit-indent-rules)
 
   ;; Navigation.
   (setq-local treesit-defun-type-regexp
               (rx (or "function_definition"
                       "struct_definition")))
-  (setq-local treesit-defun-name-function #'julia-ts-mode--defun-name)
+  (setq-local treesit-defun-name-function #'julia-ts--defun-name)
 
   ;; Imenu.
   (setq-local treesit-simple-imenu-settings
@@ -337,7 +340,7 @@ Return nil if there is no name or if NODE is not a defun node."
                 ("Struct" "\\`struct_definition\\'" nil nil)))
 
   ;; Fontification
-  (setq-local treesit-font-lock-settings julia-ts-mode--treesit-font-lock-settings)
+  (setq-local treesit-font-lock-settings julia-ts--treesit-font-lock-settings)
   (setq-local treesit-font-lock-feature-list
               '((comment definition)
                 (constant keyword string type)
