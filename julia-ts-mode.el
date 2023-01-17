@@ -184,6 +184,8 @@ Otherwise, the indentation is:
    :language 'julia
    :feature 'keyword
    `((abstract_definition) @font-lock-keyword-face
+     (break_statement) @font-lock-keyword-face
+     (continue_statement) @font-lock-keyword-face
      (import_statement ["import" "using"] @font-lock-keyword-face)
      ((vector_expression
        (range_expression
