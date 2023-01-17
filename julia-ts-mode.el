@@ -126,9 +126,9 @@ Otherwise, the indentation is:
   "Face for string interpolations in `julia-ts-mode', e.g. :foo.")
 
 (defvar julia-ts--keywords
-  '("baremodule" "begin" "catch" "const" "do" "else" "elseif" "end" "export"
-    "finally" "for" "function" "global" "if" "in" "let" "local" "macro" "module"
-    "quote" "return" "try" "where" "while")
+  '("baremodule" "begin" "break" "catch" "const" "continue" "do" "else" "elseif"
+    "end" "export" "finally" "for" "function" "global" "if" "in" "let" "local"
+    "macro" "module" "quote" "return" "try" "where" "while")
   "Keywords for `julia-ts-mode'.")
 
 (defvar julia-ts--treesit-font-lock-settings
