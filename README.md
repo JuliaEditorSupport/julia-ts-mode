@@ -16,7 +16,15 @@ This package requires:
 
 ## Installation from MELPA
 
-Coming soon.
+`julia-ts-mode` is available on MELPA. The recommended way to install it is
+using `use-package`. The following code installs `julia-ts-mode` and selects it
+as the default major mode for Julia files:
+
+``` emacs-lisp
+(use-package
+  :ensure t
+  :mode "\\.jl$")
+```
 
 ## Installation from source
 
