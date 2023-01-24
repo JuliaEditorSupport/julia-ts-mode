@@ -153,7 +153,7 @@ Otherwise, the indentation is:
    `((quote_expression) @julia-ts-quoted-symbol-face
      ((identifier) @font-lock-builtin-face
       (:match
-       "^\\(:?NaN\\|NaN16\\|NaN32\\|NaN64\\|nothing\\|missing\\|undef\\)$"
+       "^\\(:?NaN\\|NaN16\\|NaN32\\|NaN64\\|Inf\\|Inf16\\|Inf32\\|Inf64\\|nothing\\|missing\\|undef\\)$"
        @font-lock-builtin-face)))
 
    :language 'julia
