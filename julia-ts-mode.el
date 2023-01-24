@@ -186,6 +186,7 @@ Otherwise, the indentation is:
    `((abstract_definition) @font-lock-keyword-face
      (break_statement) @font-lock-keyword-face
      (continue_statement) @font-lock-keyword-face
+     (for_binding "in" @font-lock-keyword-face)
      (import_statement ["import" "using"] @font-lock-keyword-face)
      ((vector_expression
        (range_expression
@@ -208,6 +209,7 @@ Otherwise, the indentation is:
    :language 'julia
    :feature 'operator
    `((let_binding "=" @font-lock-type-face)
+     (for_binding ["=" "∈"] @font-lock-type-face)
      (function_expression "->" @font-lock-type-face)
      (operator) @font-lock-type-face
      (slurp_parameter "..." @font-lock-type-face)
