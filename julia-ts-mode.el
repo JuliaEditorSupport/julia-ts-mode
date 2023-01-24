@@ -208,7 +208,8 @@ Otherwise, the indentation is:
 
    :language 'julia
    :feature 'operator
-   `((let_binding "=" @font-lock-type-face)
+   `((adjoint_expression "'" @font-lock-type-face)
+     (let_binding "=" @font-lock-type-face)
      (for_binding ["=" "∈"] @font-lock-type-face)
      (function_expression "->" @font-lock-type-face)
      (operator) @font-lock-type-face
