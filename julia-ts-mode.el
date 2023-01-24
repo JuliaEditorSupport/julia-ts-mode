@@ -210,6 +210,8 @@ Otherwise, the indentation is:
    `((let_binding "=" @font-lock-type-face)
      (function_expression "->" @font-lock-type-face)
      (operator) @font-lock-type-face
+     (slurp_parameter "..." @font-lock-type-face)
+     (splat_expression "..." @font-lock-type-face)
      (ternary_expression ["?" ":"] @font-lock-type-face))
 
    :language 'julia
