@@ -21,7 +21,7 @@ using `use-package`. The following code installs `julia-ts-mode` and selects it
 as the default major mode for Julia files:
 
 ``` emacs-lisp
-(use-package
+(use-package julia-ts-mode
   :ensure t
   :mode "\\.jl$")
 ```
