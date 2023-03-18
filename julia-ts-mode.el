@@ -253,6 +253,17 @@ Otherwise, the indentation is:
      (lambda (node)
        (string-match-p regexp (treesit-node-type node))))))
 
+(defun julia-ts--grand-parent-bol (_n parent &rest _)
+  "Return the beginning of the line (non-space char) where the parent of the node PARENT is on."
+  (save-excursion
+    (goto-char (treesit-node-start (treesit-node-parent parent)))
+    (back-to-indentation)
+    (point)))
+
+(defun julia-ts--grand-parent-first-sibling (_n parent &rest _)
+  "Return the start of the first child of the parent of the node PARENT."
+  (treesit-node-start (treesit-node-child (treesit-node-parent parent) 0)))
+
 (defvar julia-ts--treesit-indent-rules
   `((julia
      ((parent-is "abstract_definition") parent-bol 0)
@@ -270,7 +281,7 @@ Otherwise, the indentation is:
      ((parent-is "curly_expression") parent-bol julia-ts-indent-offset)
      ((parent-is "parenthesized_expression") parent-bol julia-ts-indent-offset)
      ((parent-is "tuple_expression") parent-bol julia-ts-indent-offset)
-     ((parent-is "vector_expression") parent-bol julia-ts-indent-offset)
+     ((parent-is "vector        _expression") parent-bol julia-ts-indent-offset)
 
      ;; Match if the node is inside an assignment.
      ,@(if julia-ts-align-assignment-expressions-to-first-sibling
@@ -295,6 +306,16 @@ Otherwise, the indentation is:
      ,@(if julia-ts-align-parameter-list-to-first-sibling
            (list '((parent-is "parameter_list") first-sibling 1))
          (list '((parent-is "parameter_list") parent-bol julia-ts-indent-offset)))
+
+     ;; The keyword parameters is a child of parameter list. Hence, we need to
+     ;; consider its grand parent to perform the alignment.
+     ,@(if julia-ts-align-parameter-list-to-first-sibling
+           (list '((n-p-gp nil "keyword_parameters" "parameter_list")
+                   julia-ts--grand-parent-first-sibling
+                   1))
+         (list '((n-p-gp nil "keyword_parameters" "parameter_list")
+                 julia-ts--grand-parent-bol
+                 julia-ts-indent-offset)))
 
      ;; This rule takes care of blank lines most of the time.
      (no-node parent-bol 0)))
