@@ -281,7 +281,7 @@ Otherwise, the indentation is:
      ((parent-is "curly_expression") parent-bol julia-ts-indent-offset)
      ((parent-is "parenthesized_expression") parent-bol julia-ts-indent-offset)
      ((parent-is "tuple_expression") parent-bol julia-ts-indent-offset)
-     ((parent-is "vector        _expression") parent-bol julia-ts-indent-offset)
+     ((parent-is "vector_expression") parent-bol julia-ts-indent-offset)
 
      ;; Match if the node is inside an assignment.
      ,@(if julia-ts-align-assignment-expressions-to-first-sibling
