@@ -165,10 +165,14 @@ Otherwise, the indentation is:
    :feature 'definition
    `((function_definition
       name: (identifier) @font-lock-function-name-face)
+     (function_definition
+      name: (field_expression (identifier) "." (identifier) @font-lock-function-name-face))
      (macro_definition
       name: (identifier) @font-lock-function-name-face)
      (short_function_definition
-      name: (identifier) @font-lock-function-name-face))
+      name: (identifier) @font-lock-function-name-face)
+     (short_function_definition
+      name: (field_expression (identifier) "." (identifier) @font-lock-function-name-face)))
 
    :language 'julia
    :feature 'error
