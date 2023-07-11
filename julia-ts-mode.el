@@ -220,7 +220,6 @@ Otherwise, the indentation is:
      (slurp_parameter "..." @font-lock-type-face)
      (splat_expression "..." @font-lock-type-face)
      (ternary_expression ["?" ":"] @font-lock-type-face)
-     (type_clause ["<:", ">:"] @font-lock-type-face)
      (["." "::"] @font-lock-type-face))
 
    :language 'julia
