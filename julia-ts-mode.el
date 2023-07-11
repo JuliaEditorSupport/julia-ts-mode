@@ -144,9 +144,9 @@ Otherwise, the indentation is:
       (bare_tuple
        (field_expression (identifier) "." (identifier) @font-lock-variable-name-face))
       (operator))
-     (local_declaration (identifier) @font-lock-variable-name-face)
+     (local_statement (identifier) @font-lock-variable-name-face)
      (let_binding (identifier) @font-lock-variable-name-face)
-     (global_declaration (identifier) @font-lock-variable-name-face))
+     (global_statement (identifier) @font-lock-variable-name-face))
 
    :language 'julia
    :feature 'constant
@@ -237,7 +237,7 @@ Otherwise, the indentation is:
    :language 'julia
    :feature 'type
    :override t
-   `((type_clause "<:" (_) @font-lock-type-face)
+   `((type_clause (operator) (_) @font-lock-type-face)
      (typed_expression (_) "::" (_) @font-lock-type-face)
      (typed_parameter
       type: (_) @font-lock-type-face)
