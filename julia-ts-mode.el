@@ -53,17 +53,13 @@
 
 If it is set to t, the following indentation is used:
 
-    myfunc(a,
-           b,
-           c)
+    myfunc(a, b,
+           c, d)
 
 Otherwise, the indentation is:
 
-    myfunc(
-        a,
-        b,
-        c
-    )"
+    myfunc(a, b
+        c, d)"
   :version "29.1"
   :type 'boolean)
 
@@ -89,17 +85,13 @@ Otherwise, the indentation is:
 
 If it is set to t, the following indentation is used:
 
-    function myfunc(a,
-                    b,
-                    c)
+    function myfunc(a, b,
+                    c, d)
 
 Otherwise, the indentation is:
 
-    function myfunc(
-        a,
-        b,
-        c
-    )"
+    function myfunc(a, b,
+        c, d)"
   :version "29.1"
   :type 'boolean)
 
@@ -267,6 +259,32 @@ Otherwise, the indentation is:
   "Return the start of the first child of the parent of the node PARENT."
   (treesit-node-start (treesit-node-child (treesit-node-parent parent) 0)))
 
+(defun julia-ts--line-beginning-position-of-point (point)
+  "Return the position of the beginning of the line of `point'."
+  (save-mark-and-excursion
+    (goto-char point)
+    (line-beginning-position)))
+
+(defun julia-ts--same-line? (point-1 point-2)
+  "Return t if `point-1' and `point-2' are on the same line."
+  (equal (julia-ts--line-beginning-position-of-point point-1)
+         (julia-ts--line-beginning-position-of-point point-2)))
+
+(defun julia-ts--parent-is-list (parent-type list-starts-same-line?)
+  "Return a matcher for an item in a list. The node's parent must be
+of type `parent-type'. If `list-starts-same-line?' is true, the
+first item in the list must be on the same line as the parent.
+Otherwise, the first item must not be on the same line as the
+parent."
+  (lambda (_node parent &rest _)
+    (and (string-match-p (treesit-node-type parent) parent-type)
+         ;; The first child of the parent is assumed to be some kind
+         ;; of bracket, so the first item in the list is actually the
+         ;; second sibling.
+         (equal list-starts-same-line?
+                (julia-ts--same-line? (treesit-node-start parent)
+                                      (treesit-node-start (treesit-node-child parent 1)))))))
+
 (defvar julia-ts--treesit-indent-rules
   `((julia
      ((parent-is "abstract_definition") parent-bol 0)
@@ -302,13 +320,17 @@ Otherwise, the indentation is:
      ((parent-is "_definition") parent-bol julia-ts-indent-offset)
      ((parent-is "_clause") parent-bol julia-ts-indent-offset)
 
-     ;; Alignment of argument and parameter lists.
-     ,@(if julia-ts-align-argument-list-to-first-sibling
-           (list '((parent-is "argument_list") first-sibling 1))
-         (list '((parent-is "argument_list") parent-bol julia-ts-indent-offset)))
-     ,@(if julia-ts-align-parameter-list-to-first-sibling
-           (list '((parent-is "parameter_list") first-sibling 1))
-         (list '((parent-is "parameter_list") parent-bol julia-ts-indent-offset)))
+     ;; Alignment of argument lists.
+     ,(if julia-ts-align-argument-list-to-first-sibling
+          `(,(julia-ts--parent-is-list "argument_list" t) first-sibling 1)
+        `(,(julia-ts--parent-is-list "argument_list" t) parent-bol julia-ts-indent-offset))
+     ((julia-ts--parent-is-list "argument_list" nil) parent-bol julia-ts-indent-offset)
+
+     ;; Alignment of parameter lists.
+     ,(if julia-ts-align-parameter-list-to-first-sibling
+          `(,(julia-ts--parent-is-list "parameter_list" t) first-sibling 1)
+        `(,(julia-ts--parent-is-list "parameter_list" t) parent-bol julia-ts-indent-offset))
+     ((julia-ts--parent-is-list "parameter_list" nil) parent-bol julia-ts-indent-offset)
 
      ;; The keyword parameters is a child of parameter list. Hence, we need to
      ;; consider its grand parent to perform the alignment.
