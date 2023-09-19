@@ -95,6 +95,36 @@ Otherwise, the indentation is:
   :version "29.1"
   :type 'boolean)
 
+(defcustom julia-ts-align-curly-brace-expreesions-to-first-sibling nil
+  "Align curly brace expressions to the first sibling.
+
+If it is set to t, the following indentation is used:
+
+    MyType{A, B,
+           C, D}
+
+Otherwise, the indentation is:
+
+    MyType{A, B
+        C, D}"
+  :version "29.1"
+  :type 'boolean)
+
+(defcustom julia-ts-align-type-parameter-list-to-first-sibling nil
+  "Align type parameter lists to the first sibling.
+
+If it is set to t, the following indentation is used:
+
+    struct MyType{A, B
+                  C, D}
+
+Otherwise, the indentation is:
+
+    struct MyType{A, B,
+        C, D}"
+  :version "29.1"
+  :type 'boolean)
+
 (defcustom julia-ts-indent-offset 4
   "Number of spaces for each indentation step in `julia-ts-mode'."
   :version "29.1"
@@ -270,20 +300,30 @@ Otherwise, the indentation is:
   (equal (julia-ts--line-beginning-position-of-point point-1)
          (julia-ts--line-beginning-position-of-point point-2)))
 
-(defun julia-ts--parent-is-list (parent-type list-starts-same-line?)
-  "Return a matcher for an item in a list. The node's parent must be
-of type `parent-type'. If `list-starts-same-line?' is true, the
-first item in the list must be on the same line as the parent.
-Otherwise, the first item must not be on the same line as the
-parent."
+(defun julia-ts--parent-is (parent-type sibling-index sibling-same-line?)
+  "Return t if the parent of the current node is of type
+`parent-type', and the test of whether the sibling of the current
+node at index `sibling-index' is on the same line as the parent
+is equal to `sibling-same-line?'.
+
+This allows indentation rules to be matched based on whether the
+children of the parent start on the same line as the parent.
+
+The `sibling-index' is required because the first few siblings
+may be part of the syntax. For example, in an assignment
+expression, the first sibling is the identifier being assigned
+to, the second sibling is the operator, and the third child is
+the beginning of the right hand side of the expression. In that
+case, we want to know if the third sibling is on the same line as
+the parent.
+
+This is intended to be used as a matcher for
+`treesit-simple-indent-rules'."
   (lambda (_node parent &rest _)
     (and (string-match-p (treesit-node-type parent) parent-type)
-         ;; The first child of the parent is assumed to be some kind
-         ;; of bracket, so the first item in the list is actually the
-         ;; second sibling.
-         (equal list-starts-same-line?
+         (equal sibling-same-line?
                 (julia-ts--same-line? (treesit-node-start parent)
-                                      (treesit-node-start (treesit-node-child parent 1)))))))
+                                      (treesit-node-start (treesit-node-child parent sibling-index)))))))
 
 (defvar julia-ts--treesit-indent-rules
   `((julia
@@ -296,41 +336,63 @@ parent."
      ((node-is "finally") parent-bol 0)
      ((node-is ")") parent-bol 0)
      ((node-is "]") parent-bol 0)
+     ((node-is "}") parent-bol 0)
 
-     ;; We want to increase the indentation only for a certain types of
-     ;; expressions.
-     ((parent-is "curly_expression") parent-bol julia-ts-indent-offset)
+     ;; Alignment of parenthesized expressions.
      ((parent-is "parenthesized_expression") parent-bol julia-ts-indent-offset)
-     ((parent-is "tuple_expression") parent-bol julia-ts-indent-offset)
-     ((parent-is "vector_expression") parent-bol julia-ts-indent-offset)
+
+     ;; Alignment of tuples.
+     (,(julia-ts--parent-is "tuple_expression" 1 t) first-sibling 1)
+     ((julia-ts--parent-is "tuple_expression" 1 nil) parent-bol julia-ts-indent-offset)
+
+     ;; Alignment of arrays.
+     (,(julia-ts--parent-is "vector_expression" 1 t) first-sibling 1)
+     ((julia-ts--parent-is "vector_expression" 1 nil) parent-bol julia-ts-indent-offset)
+     (,(julia-ts--parent-is "matrix_expression" 1 t) first-sibling 1)
+     ((julia-ts--parent-is "matrix_expression" 1 nil) parent-bol julia-ts-indent-offset)
+
+     ;; Alignment of type argument lists.
+     ,(if julia-ts-align-curly-brace-expressions-to-first-sibling
+          `(,(julia-ts--parent-is "curly_expression" 1 t) first-sibling 1)
+        `(,(julia-ts--parent-is "curly_expression" 1 t) parent-bol julia-ts-indent-offset))
+     ((julia-ts--parent-is "curly_expression" 1 nil) parent-bol julia-ts-indent-offset)
 
      ;; Match if the node is inside an assignment.
-     ,@(if julia-ts-align-assignment-expressions-to-first-sibling
-           (list '((julia-ts--ancestor-is "assignment") first-sibling 0))
-         (list '((julia-ts--ancestor-is "assignment") parent-bol julia-ts-indent-offset)))
+     ,(if julia-ts-align-assignment-expressions-to-first-sibling
+          ;; The identifier is the first sibling, = is the second sibling, and
+          ;; the first part of the RHS is the third sibling.
+          `(,(julia-ts--parent-is "assignment" 2 t) (nth-sibling 1) 2)
+        `(,(julia-ts--parent-is "assignment" 2 t) parent-bol julia-ts-indent-offset))
+     ((julia-ts--parent-is "assignment" 2 nil) parent-bol julia-ts-indent-offset)
 
      ;; Align the expressions in the if statement conditions.
      ((julia-ts--ancestor-is "if_statement") parent-bol julia-ts-indent-offset)
 
      ;; For all other expressions, keep the indentation as the parent.
-     ((parent-is "_expression") parent-bol 0)
+     ((parent-is "_expression") parent 0)
 
      ;; General indentation rules for blocks.
      ((parent-is "_statement") parent-bol julia-ts-indent-offset)
      ((parent-is "_definition") parent-bol julia-ts-indent-offset)
      ((parent-is "_clause") parent-bol julia-ts-indent-offset)
 
+     ;; Alignment of type parameter lists.
+     ,(if julia-ts-align-argument-list-to-first-sibling
+          `(,(julia-ts--parent-is "type_parameter_list" 1 t) first-sibling 1)
+        `(,(julia-ts--parent-is "type_parameter_list" 1 t) parent-bol julia-ts-indent-offset))
+     ((julia-ts--parent-is "type_parameter_list" 1 nil) parent-bol julia-ts-indent-offset)
+
      ;; Alignment of argument lists.
      ,(if julia-ts-align-argument-list-to-first-sibling
-          `(,(julia-ts--parent-is-list "argument_list" t) first-sibling 1)
-        `(,(julia-ts--parent-is-list "argument_list" t) parent-bol julia-ts-indent-offset))
-     ((julia-ts--parent-is-list "argument_list" nil) parent-bol julia-ts-indent-offset)
+          `(,(julia-ts--parent-is "argument_list" 1 t) first-sibling 1)
+        `(,(julia-ts--parent-is "argument_list" 1 t) parent-bol julia-ts-indent-offset))
+     ((julia-ts--parent-is "argument_list" 1 nil) parent-bol julia-ts-indent-offset)
 
      ;; Alignment of parameter lists.
      ,(if julia-ts-align-parameter-list-to-first-sibling
-          `(,(julia-ts--parent-is-list "parameter_list" t) first-sibling 1)
-        `(,(julia-ts--parent-is-list "parameter_list" t) parent-bol julia-ts-indent-offset))
-     ((julia-ts--parent-is-list "parameter_list" nil) parent-bol julia-ts-indent-offset)
+          `(,(julia-ts--parent-is "parameter_list" 1 t) first-sibling 1)
+        `(,(julia-ts--parent-is "parameter_list" 1 t) parent-bol julia-ts-indent-offset))
+     ((julia-ts--parent-is "parameter_list" 1 nil) parent-bol julia-ts-indent-offset)
 
      ;; The keyword parameters is a child of parameter list. Hence, we need to
      ;; consider its grand parent to perform the alignment.
