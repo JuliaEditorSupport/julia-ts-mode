@@ -38,6 +38,7 @@
 (require 'treesit)
 (eval-when-compile (require 'rx))
 (require 'julia-mode)
+(require 'julia-ts-misc)
 
 (declare-function treesit-parser-create "treesit.c")
 
@@ -269,130 +270,6 @@ Otherwise, the indentation is:
                                                         (_)
                                                         @font-lock-type-face)))))
   "Tree-sitter font-lock settings for `julia-ts-mode'.")
-
-(defun julia-ts--ancestor-is (regexp)
-  "Return the ancestor of NODE that matches `REGEXP', if it exists."
-  (lambda (node &rest _)
-    (julia-ts--ancestor-node node regexp)))
-
-(defun julia-ts--ancestor-node (node regexp)
-  "Return the ancestor NODE that matches REGEXP, if it exists."
-  (treesit-parent-until node
-                        (lambda (node)
-                          (string-match-p regexp (treesit-node-type node)))))
-
-(defun julia-ts--ancestor-bol (regexp)
-  "Return the BOL of the current node's ancestor that matches REGEXP."
-  (lambda (node &rest _)
-      (treesit-node-start (julia-ts--ancestor-node node regexp))))
-
-(defun julia-ts--grand-parent-bol (_n parent &rest _)
-  "Return the beginning of the line (non-space char) where the node's PARENT is on."
-  (save-excursion
-    (goto-char (treesit-node-start (treesit-node-parent parent)))
-    (back-to-indentation)
-    (point)))
-
-(defun julia-ts--grand-parent-first-sibling (_n parent &rest _)
-  "Return the start of the first child of the parent of the node PARENT."
-  (treesit-node-start (treesit-node-child (treesit-node-parent parent) 0)))
-
-(defun julia-ts--line-beginning-position-of-point (point)
-  "Return the position of the beginning of the line of POINT."
-  (save-mark-and-excursion
-    (goto-char point)
-    (line-beginning-position)))
-
-(defun julia-ts--same-line? (point-1 point-2)
-  "Return t if POINT-1 and POINT-2 are on the same line."
-  (equal (julia-ts--line-beginning-position-of-point point-1)
-         (julia-ts--line-beginning-position-of-point point-2)))
-
-(defun julia-ts--parent-is-and-sibling-on-same-line (parent-type sibling-index)
-  "Check the type of the node's parent and if a sibling is on the same line.
-
-Return t if the node's parent type is PARENT-TYPE and if the sibling with index
-SIBLING-INDEX is on the same line of the current node's parent.
-
-This allows indentation rules to be matched based on whether the children of the
-parent start on the same line as the parent.
-
-The SIBLING-INDEX is required because the first few siblings may be part of the
-syntax. For example, in an assignment expression, the first sibling is the
-identifier being assigned to, the second sibling is the operator, and the third
-child is the beginning of the right hand side of the expression. In that case,
-we want to know if the third sibling is on the same line as the parent.
-
-This is intended to be used as a matcher for `treesit-simple-indent-rules'."
-  (lambda (_node parent &rest _)
-    (and (string-match-p (treesit-node-type parent) parent-type)
-         (julia-ts--same-line? (treesit-node-start parent)
-                               (treesit-node-start (treesit-node-child parent sibling-index))))))
-
-(defun julia-ts--parent-is-and-sibling-not-on-same-line (parent-type sibling-index)
-  "Check the type of the node's parent and if a sibling is on the same line.
-
-Return t if the node's parent type is PARENT-TYPE and if the sibling with index
-SIBLING-INDEX is not on the same line of the current node's parent.
-
-This allows indentation rules to be matched based on whether the children of the
-parent start on the same line as the parent.
-
-The SIBLING-INDEX is required because the first few siblings may be part of the
-syntax. For example, in an assignment expression, the first sibling is the
-identifier being assigned to, the second sibling is the operator, and the third
-child is the beginning of the right hand side of the expression. In that case,
-we want to know if the third sibling is on the same line as the parent.
-
-This is intended to be used as a matcher for `treesit-simple-indent-rules'."
-  (lambda (_node parent &rest _)
-    (and (string-match-p (treesit-node-type parent) parent-type)
-         (not (julia-ts--same-line? (treesit-node-start parent)
-                                    (treesit-node-start (treesit-node-child parent sibling-index)))))))
-
-(defun julia-ts--ancestor-is-and-sibling-on-same-line (ancestor-type sibling-index)
-  "Check the type of the node's ancestor and if a sibling is on the same line.
-
-Return t if the node's ancestor type is ANCESTOR-TYPE and if the sibling with
-index SIBLING-INDEX is on the same line of the current node's parent.
-
-This allows indentation rules to be matched based on whether the children of the
-parent start on the same line as the parent.
-
-The SIBLING-INDEX is required because the first few siblings may be part of the
-syntax. For example, in an assignment expression, the first sibling is the
-identifier being assigned to, the second sibling is the operator, and the third
-child is the beginning of the right hand side of the expression. In that case,
-we want to know if the third sibling is on the same line as the parent.
-
-This is intended to be used as a matcher for `treesit-simple-indent-rules'."
-  (lambda (node &rest _)
-    (let ((ancestor (julia-ts--ancestor-node node ancestor-type)))
-      (and ancestor
-           (julia-ts--same-line? (treesit-node-start ancestor)
-                                 (treesit-node-start (treesit-node-child ancestor sibling-index)))))))
-
-(defun julia-ts--ancestor-is-and-sibling-not-on-same-line (ancestor-type sibling-index)
-  "Check the type of the node's ancestor and if a sibling is on the same line.
-
-Return t if the node's ancestor type is ANCESTOR-TYPE and if the sibling with
-index SIBLING-INDEX is on the same line of the current node's parent.
-
-This allows indentation rules to be matched based on whether the children of the
-parent start on the same line as the parent.
-
-The SIBLING-INDEX is required because the first few siblings may be part of the
-syntax. For example, in an assignment expression, the first sibling is the
-identifier being assigned to, the second sibling is the operator, and the third
-child is the beginning of the right hand side of the expression. In that case,
-we want to know if the third sibling is on the same line as the parent.
-
-This is intended to be used as a matcher for `treesit-simple-indent-rules'."
-  (lambda (node &rest _)
-    (let ((ancestor (julia-ts--ancestor-node node ancestor-type)))
-      (and ancestor
-           (not (julia-ts--same-line? (treesit-node-start ancestor)
-                                      (treesit-node-start (treesit-node-child ancestor sibling-index))))))))
 
 (defvar julia-ts--treesit-indent-rules
   `((julia
