@@ -279,7 +279,7 @@ Otherwise, the indentation is:
        (string-match-p regexp (treesit-node-type node))))))
 
 (defun julia-ts--grand-parent-bol (_n parent &rest _)
-  "Return the beginning of the line (non-space char) where the parent of the node PARENT is on."
+  "Return the beginning of the line (non-space char) where the node's PARENT is on."
   (save-excursion
     (goto-char (treesit-node-start (treesit-node-parent parent)))
     (back-to-indentation)
@@ -290,13 +290,13 @@ Otherwise, the indentation is:
   (treesit-node-start (treesit-node-child (treesit-node-parent parent) 0)))
 
 (defun julia-ts--line-beginning-position-of-point (point)
-  "Return the position of the beginning of the line of `point'."
+  "Return the position of the beginning of the line of POINT."
   (save-mark-and-excursion
     (goto-char point)
     (line-beginning-position)))
 
 (defun julia-ts--same-line? (point-1 point-2)
-  "Return t if `point-1' and `point-2' are on the same line."
+  "Return t if POINT-1 and POINT-2 are on the same line."
   (equal (julia-ts--line-beginning-position-of-point point-1)
          (julia-ts--line-beginning-position-of-point point-2)))
 
