@@ -5,7 +5,7 @@
 ;; Author           : Ronan Arraes Jardim Chagas
 ;; Created          : December 2022
 ;; Keywords         : julia languages tree-sitter
-;; Package-Requires : ((emacs "29") (julia-mode "0.4"))
+;; Package-Requires : ((emacs "29.1") (julia-mode "0.4"))
 ;; URL              : https://github.com/ronisbr/julia-ts-mode
 ;; Version          : 0.2.5
 ;;
