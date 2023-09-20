@@ -299,8 +299,8 @@ Otherwise, the indentation is:
 
      ;; Match if the node is inside an assignment.
      ;; Note that if the user wants to align the assignment expressions on the
-     ;; first sibling, we should only check if the first sibling is on the same
-     ;; line of its parent. The other rules already perform the correct
+     ;; first sibling, we should only check if the first sibling is not on the
+     ;; same line of its parent. The other rules already perform the correct
      ;; indentation.
      ,@(unless julia-ts-align-assignment-expressions-to-first-sibling
          (list `((julia-ts--ancestor-is-and-sibling-on-same-line "assignment" 2) (julia-ts--ancestor-bol "assignment") julia-ts-indent-offset)))
