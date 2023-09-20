@@ -95,7 +95,7 @@ Otherwise, the indentation is:
   :version "29.1"
   :type 'boolean)
 
-(defcustom julia-ts-align-curly-brace-expreesions-to-first-sibling nil
+(defcustom julia-ts-align-curly-brace-expressions-to-first-sibling nil
   "Align curly brace expressions to the first sibling.
 
 If it is set to t, the following indentation is used:
