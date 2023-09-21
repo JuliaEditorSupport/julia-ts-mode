@@ -297,15 +297,6 @@ Otherwise, the indentation is:
      ((julia-ts--parent-is-and-sibling-on-same-line "matrix_expression" 1) first-sibling 1)
      ((julia-ts--parent-is-and-sibling-not-on-same-line "matrix_expression" 1) parent-bol julia-ts-indent-offset)
 
-     ;; Match if the node is inside an assignment.
-     ;; Note that if the user wants to align the assignment expressions on the
-     ;; first sibling, we should only check if the first sibling is not on the
-     ;; same line of its parent. The other rules already perform the correct
-     ;; indentation.
-     ,@(unless julia-ts-align-assignment-expressions-to-first-sibling
-         (list `((julia-ts--ancestor-is-and-sibling-on-same-line "assignment" 2) (julia-ts--ancestor-bol "assignment") julia-ts-indent-offset)))
-     ((julia-ts--ancestor-is-and-sibling-not-on-same-line "assignment" 2) (julia-ts--ancestor-bol "assignment") julia-ts-indent-offset)
-
      ;; Alignment of curly brace expressions.
      ,(if julia-ts-align-curly-brace-expressions-to-first-sibling
           `((julia-ts--parent-is-and-sibling-on-same-line "curly_expression" 1) first-sibling 1)
@@ -350,6 +341,15 @@ Otherwise, the indentation is:
          (list '((n-p-gp nil "keyword_parameters" "parameter_list")
                  julia-ts--grand-parent-bol
                  julia-ts-indent-offset)))
+
+     ;; Match if the node is inside an assignment.
+     ;; Note that if the user wants to align the assignment expressions on the
+     ;; first sibling, we should only check if the first sibling is not on the
+     ;; same line of its parent. The other rules already perform the correct
+     ;; indentation.
+     ,@(unless julia-ts-align-assignment-expressions-to-first-sibling
+         (list `((julia-ts--ancestor-is-and-sibling-on-same-line "assignment" 2) (julia-ts--ancestor-bol "assignment") julia-ts-indent-offset)))
+     ((julia-ts--ancestor-is-and-sibling-not-on-same-line "assignment" 2) (julia-ts--ancestor-bol "assignment") julia-ts-indent-offset)
 
      ;; This rule takes care of blank lines most of the time.
      (no-node parent-bol 0)))
