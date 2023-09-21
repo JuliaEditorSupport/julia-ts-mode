@@ -36,6 +36,14 @@ the following lines to your Emacs configuration:
 (require 'julia-ts-mode)
 ```
 
+## Installing Julia Tree-Sitter Grammar
+
+The recommended way to install the tree-sitter grammar is using the package
+[treesit-auto](https://github.com/renzmann/treesit-auto). In this case, the
+Julia tree-sitter grammar will be automatically downloaded and compiled when a
+Julia file is opened using the major mode `julia-ts-mode`. For more information
+on how to install and configure `treesit-auto`, check the package documentation.
+
 # LSP Configuration
 
 This mode is derived from `julia-mode`. Hence, most of the feature available for
