@@ -167,6 +167,7 @@ Otherwise, the indentation is:
       (bare_tuple
        (field_expression (identifier) "." (identifier) @font-lock-variable-name-face))
       (operator))
+     (compound_assignment_expression (identifier) @font-lock-variable-name-face)
      (local_statement (identifier) @font-lock-variable-name-face)
      (let_binding (identifier) @font-lock-variable-name-face)
      (global_statement (identifier) @font-lock-variable-name-face))
