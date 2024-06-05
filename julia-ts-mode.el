@@ -162,9 +162,9 @@ Otherwise, the indentation is:
      (assignment
       (field_expression (identifier) "." (identifier) @font-lock-variable-name-face)
       (operator))
-     (assignment (bare_tuple (identifier) @font-lock-variable-name-face))
+     (assignment (open_tuple (identifier) @font-lock-variable-name-face))
      (assignment
-      (bare_tuple
+      (open_tuple
        (field_expression (identifier) "." (identifier) @font-lock-variable-name-face))
       (operator))
      (local_statement (identifier) @font-lock-variable-name-face)
@@ -187,15 +187,25 @@ Otherwise, the indentation is:
    :language 'julia
    :feature 'definition
    `((function_definition
-      name: (identifier) @font-lock-function-name-face)
+      (signature
+       (call_expression (identifier) @font-lock-function-name-face)))
      (function_definition
-      name: (field_expression (identifier) "." (identifier) @font-lock-function-name-face))
+      (signature
+       (call_expression
+	(field_expression
+	 (identifier) "." (identifier) @font-lock-function-name-face))))
+     (assignment
+      (call_expression (identifier) @font-lock-function-name-face)
+      (operator))
+     (assignment
+      (call_expression
+       (field_expression
+	(identifier) "." (identifier) @font-lock-function-name-face))
+      (operator))
      (macro_definition
-      name: (identifier) @font-lock-function-name-face)
-     (short_function_definition
-      name: (identifier) @font-lock-function-name-face)
-     (short_function_definition
-      name: (field_expression (identifier) "." (identifier) @font-lock-function-name-face)))
+      (signature
+       (call_expression (identifier) @font-lock-function-name-face)))
+     (struct_definition name: (identifier) @font-lock-type-face))
 
    :language 'julia
    :feature 'error
@@ -240,7 +250,6 @@ Otherwise, the indentation is:
      (for_binding ["=" "∈"] @font-lock-type-face)
      (function_expression "->" @font-lock-type-face)
      (operator) @font-lock-type-face
-     (slurp_parameter "..." @font-lock-type-face)
      (splat_expression "..." @font-lock-type-face)
      (ternary_expression ["?" ":"] @font-lock-type-face)
      (["." "::"] @font-lock-type-face))
@@ -261,8 +270,11 @@ Otherwise, the indentation is:
    :override t
    `((type_clause (operator) (_) @font-lock-type-face)
      (typed_expression (_) "::" (_) @font-lock-type-face)
-     (typed_parameter
-      type: (_) @font-lock-type-face)
+     (type_parameter_list
+      (binary_expression
+       (identifier) (operator) (identifier) @font-lock-type-face))
+     (unary_typed_expression
+      "::" (_) @font-lock-type-face)
      (where_clause "where"
                    (curly_expression "{"
                                      (binary_expression (identifier)
@@ -322,25 +334,15 @@ Otherwise, the indentation is:
 
      ;; Alignment of parameter lists.
      ,(if julia-ts-align-parameter-list-to-first-sibling
-          `((julia-ts--parent-is-and-sibling-on-same-line "parameter_list" 1) first-sibling 1)
-        `((julia-ts--parent-is-and-sibling-on-same-line "parameter_list" 1) parent-bol julia-ts-indent-offset))
-     ((julia-ts--parent-is-and-sibling-not-on-same-line "parameter_list" 1) parent-bol julia-ts-indent-offset)
+          `((julia-ts--parent-is-and-sibling-on-same-line "argument_list" 1) first-sibling 1)
+        `((julia-ts--parent-is-and-sibling-on-same-line "argument_list" 1) parent-bol julia-ts-indent-offset))
+     ((julia-ts--parent-is-and-sibling-not-on-same-line "argument_list" 1) parent-bol julia-ts-indent-offset)
 
      ;; Alignment of type parameter lists.
      ,(if julia-ts-align-argument-list-to-first-sibling
           `((julia-ts--parent-is-and-sibling-on-same-line "type_parameter_list" 1) first-sibling 1)
         `((julia-ts--parent-is-and-sibling-on-same-line "type_parameter_list" 1) parent-bol julia-ts-indent-offset))
      ((julia-ts--parent-is-and-sibling-not-on-same-line "type_parameter_list" 1) parent-bol julia-ts-indent-offset)
-
-     ;; The keyword parameters is a child of parameter list. Hence, we need to
-     ;; consider its grand parent to perform the alignment.
-     ,@(if julia-ts-align-parameter-list-to-first-sibling
-           (list '((n-p-gp nil "keyword_parameters" "parameter_list")
-                   julia-ts--grand-parent-first-sibling
-                   1))
-         (list '((n-p-gp nil "keyword_parameters" "parameter_list")
-                 julia-ts--grand-parent-bol
-                 julia-ts-indent-offset)))
 
      ;; Match if the node is inside an assignment.
      ;; Note that if the user wants to align the assignment expressions on the
@@ -359,13 +361,22 @@ Otherwise, the indentation is:
   "Return the defun name of NODE.
 Return nil if there is no name or if NODE is not a defun node."
   (pcase (treesit-node-type node)
-    ((or "abstract_definition"
-         "function_definition"
-         "short_function_definition"
-         "struct_definition")
+    ((or "abstract_definition" "struct_definition")
      (treesit-node-text
       (treesit-node-child-by-field-name node "name")
-      t))))
+      t))
+    ("function_definition"
+     (when-let*
+	 ((node1 (julia-ts--child-of-type node "signature"))
+	  (node2 (julia-ts--child-of-type node1 "call_expression"))
+	  (node3 (treesit-node-child node2 0)))
+       (treesit-node-text node3)))))
+
+(defun julia-ts--child-of-type (node type)
+  (car (treesit-filter-child
+	node
+	(lambda (child)
+	  (equal (treesit-node-type child) type)))))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.jl\\'" . julia-ts-mode))
@@ -396,13 +407,15 @@ Return nil if there is no name or if NODE is not a defun node."
   ;; Navigation.
   (setq-local treesit-defun-type-regexp
               (rx (or "function_definition"
-                      "struct_definition")))
+                      "struct_definition"
+		      "abstract_definition")))
   (setq-local treesit-defun-name-function #'julia-ts--defun-name)
 
   ;; Imenu.
   (setq-local treesit-simple-imenu-settings
-              `(("Function" "\\`function_definition\\|short_function_definition\\'" nil nil)
-                ("Struct" "\\`struct_definition\\'" nil nil)))
+              `(("Function" "\\`function_definition\\'" nil nil)
+                ("Struct" "\\`struct_definition\\'" nil nil)
+		("Type" "\\`abstract_definition\\'" nil nil)))
 
   ;; Fontification
   (setq-local treesit-font-lock-settings julia-ts--treesit-font-lock-settings)
