@@ -407,13 +407,15 @@ Return nil if there is no name or if NODE is not a defun node."
   ;; Navigation.
   (setq-local treesit-defun-type-regexp
               (rx (or "function_definition"
-                      "struct_definition")))
+                      "struct_definition"
+		      "abstract_definition")))
   (setq-local treesit-defun-name-function #'julia-ts--defun-name)
 
   ;; Imenu.
   (setq-local treesit-simple-imenu-settings
               `(("Function" "\\`function_definition\\'" nil nil)
-                ("Struct" "\\`struct_definition\\'" nil nil)))
+                ("Struct" "\\`struct_definition\\'" nil nil)
+		("Type" "\\`abstract_definition\\'" nil nil)))
 
   ;; Fontification
   (setq-local treesit-font-lock-settings julia-ts--treesit-font-lock-settings)
