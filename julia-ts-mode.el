@@ -361,12 +361,22 @@ Otherwise, the indentation is:
   "Return the defun name of NODE.
 Return nil if there is no name or if NODE is not a defun node."
   (pcase (treesit-node-type node)
-    ((or "abstract_definition"
-         "function_definition"
-         "struct_definition")
+    ((or "abstract_definition" "struct_definition")
      (treesit-node-text
       (treesit-node-child-by-field-name node "name")
-      t))))
+      t))
+    ("function_definition"
+     (when-let*
+	 ((node1 (julia-ts--child-of-type node "signature"))
+	  (node2 (julia-ts--child-of-type node1 "call_expression"))
+	  (node3 (treesit-node-child node2 0)))
+       (treesit-node-text node3)))))
+
+(defun julia-ts--child-of-type (node type)
+  (car (treesit-filter-child
+	node
+	(lambda (child)
+	  (equal (treesit-node-type child) type)))))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.jl\\'" . julia-ts-mode))
