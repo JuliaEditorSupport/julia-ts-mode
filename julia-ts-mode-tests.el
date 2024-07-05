@@ -39,15 +39,15 @@
 (require 'julia-ts-mode)
 (require 'ert)
 
-(defmacro julia-ts--should-indent (from to)
+(defun julia-ts--should-indent (from to)
   "Assert that we indent text FROM producing text TO in `julia-ts-mode'."
-  `(with-temp-buffer
-     (let ((julia-indent-offset 4))
-       (julia-ts-mode)
-       (insert ,from)
-       (indent-region (point-min) (point-max))
-       (should (equal (buffer-substring-no-properties (point-min) (point-max))
-                      ,to)))))
+  (with-temp-buffer
+    (let ((julia-indent-offset 4))
+      (julia-ts-mode)
+      (insert from)
+      (indent-region (point-min) (point-max))
+      (should (equal (buffer-substring-no-properties (point-min) (point-max))
+                     to)))))
 
 (defun julia-ts--get-font-lock (text pos)
   "Get the face of `text' at `pos' when font-locked as Julia code in this mode."
@@ -60,9 +60,9 @@
          (font-lock-fontify-buffer)))
      (get-text-property pos 'face)))
 
-(defmacro julia-ts--should-font-lock (text pos face)
+(defun julia-ts--should-font-lock (text pos face)
   "Assert that TEXT at position POS gets font-locked with FACE in `julia-ts-mode'."
-  `(should (eq ,face (julia-ts--get-font-lock ,text ,pos))))
+  (should (eq face (julia-ts--get-font-lock text pos))))
 
 (defun julia-ts--should-move-point-helper (text fun from to &optional end &rest args)
   "Takes the same arguments as `julia-ts--should-move-point', returns a cons of the expected and the actual point."
@@ -87,14 +87,14 @@
              to)))
       (cons expected-to actual-to))))
 
-(defmacro julia-ts--should-move-point (text fun from to &optional end &rest args)
+(defun julia-ts--should-move-point (text fun from to &optional end &rest args)
   "With TEXT in `julia-ts-mode', after calling FUN, the point should move FROM\
 to TO.  If FROM is a string, move the point to matching string before calling
 function FUN.  If TO is a string, match resulting point to point a beginning of
 matching line or end of match if END is non-nil.  Optional ARG is passed to FUN."
   (declare (indent defun))
-  `(let ((positions (julia-ts--should-move-point-helper ,text ,fun ,from ,to ,end ,@args)))
-     (should (eq (car positions) (cdr positions)))))
+  (let ((positions (apply #'julia-ts--should-move-point-helper text fun from to end args)))
+    (should (eq (car positions) (cdr positions)))))
 
 ;;; indent tests
 
