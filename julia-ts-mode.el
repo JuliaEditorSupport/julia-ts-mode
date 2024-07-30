@@ -271,7 +271,8 @@ Otherwise, the indentation is:
                                                         @font-lock-type-face)))))
   "Tree-sitter font-lock settings for `julia-ts-mode'.")
 
-(defvar julia-ts--treesit-indent-rules
+(defun julia-ts--treesit-indent-rules ()
+  "Tree-sitter indent rules for `julia-ts-mode'."
   `((julia
      ((parent-is "abstract_definition") parent-bol 0)
      ((parent-is "module_definition") parent-bol 0)
@@ -352,8 +353,7 @@ Otherwise, the indentation is:
      ((julia-ts--ancestor-is-and-sibling-not-on-same-line "assignment" 2) (julia-ts--ancestor-bol "assignment") julia-ts-indent-offset)
 
      ;; This rule takes care of blank lines most of the time.
-     (no-node parent-bol 0)))
-  "Tree-sitter indent rules for `julia-ts-mode'.")
+     (no-node parent-bol 0))))
 
 (defun julia-ts--defun-name (node)
   "Return the defun name of NODE.
@@ -391,7 +391,7 @@ Return nil if there is no name or if NODE is not a defun node."
   (setq-local comment-start-skip (rx "#" (* (syntax whitespace))))
 
   ;; Indent.
-  (setq-local treesit-simple-indent-rules julia-ts--treesit-indent-rules)
+  (setq-local treesit-simple-indent-rules (julia-ts--treesit-indent-rules))
 
   ;; Navigation.
   (setq-local treesit-defun-type-regexp
