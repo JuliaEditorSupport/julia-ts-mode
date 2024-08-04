@@ -271,7 +271,8 @@ Otherwise, the indentation is:
                                                         @font-lock-type-face)))))
   "Tree-sitter font-lock settings for `julia-ts-mode'.")
 
-(defvar julia-ts--treesit-indent-rules
+(defun julia-ts--treesit-indent-rules ()
+  "Tree-sitter indent rules for `julia-ts-mode'."
   `((julia
      ((parent-is "abstract_definition") parent-bol 0)
      ((parent-is "module_definition") parent-bol 0)
@@ -310,7 +311,7 @@ Otherwise, the indentation is:
      ((parent-is "_expression") parent 0)
 
      ;; General indentation rules for blocks.
-     ((parent-is "_statement") parent-bol julia-ts-indent-offset)
+     ((parent-is "_statement\\|selected_import") parent-bol julia-ts-indent-offset)
      ((parent-is "_definition") parent-bol julia-ts-indent-offset)
      ((parent-is "_clause") parent-bol julia-ts-indent-offset)
 
@@ -351,9 +352,10 @@ Otherwise, the indentation is:
          (list `((julia-ts--ancestor-is-and-sibling-on-same-line "assignment" 2) (julia-ts--ancestor-bol "assignment") julia-ts-indent-offset)))
      ((julia-ts--ancestor-is-and-sibling-not-on-same-line "assignment" 2) (julia-ts--ancestor-bol "assignment") julia-ts-indent-offset)
 
+     ((parent-is "source_file") column-0 0)
+
      ;; This rule takes care of blank lines most of the time.
-     (no-node parent-bol 0)))
-  "Tree-sitter indent rules for `julia-ts-mode'.")
+     (no-node parent-bol 0))))
 
 (defun julia-ts--defun-name (node)
   "Return the defun name of NODE.
@@ -362,7 +364,8 @@ Return nil if there is no name or if NODE is not a defun node."
     ((or "abstract_definition"
          "function_definition"
          "short_function_definition"
-         "struct_definition")
+         "struct_definition"
+	 "macro_definition")
      (treesit-node-text
       (treesit-node-child-by-field-name node "name")
       t))))
@@ -391,12 +394,13 @@ Return nil if there is no name or if NODE is not a defun node."
   (setq-local comment-start-skip (rx "#" (* (syntax whitespace))))
 
   ;; Indent.
-  (setq-local treesit-simple-indent-rules julia-ts--treesit-indent-rules)
+  (setq-local treesit-simple-indent-rules (julia-ts--treesit-indent-rules))
 
   ;; Navigation.
   (setq-local treesit-defun-type-regexp
               (rx (or "function_definition"
-                      "struct_definition")))
+                      "struct_definition"
+		      "macro_definition")))
   (setq-local treesit-defun-name-function #'julia-ts--defun-name)
 
   ;; Imenu.
