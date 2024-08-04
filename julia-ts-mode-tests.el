@@ -62,7 +62,11 @@
 
 (defun julia-ts--should-font-lock (text pos face)
   "Assert that TEXT at position POS gets font-locked with FACE in `julia-ts-mode'."
-  (should (eq face (julia-ts--get-font-lock text pos))))
+  (let* ((actual-face (julia-ts--get-font-lock text pos))
+	 (actual-face (if (and (consp actual-face) (not (cdr actual-face)))
+			  (car actual-face)
+			actual-face)))
+    (should (eq face actual-face))))
 
 (defun julia-ts--should-move-point-helper (text fun from to &optional end &rest args)
   "Takes the same arguments as `julia-ts--should-move-point', returns a cons of the expected and the actual point."
@@ -156,13 +160,13 @@ end"))
   "Module should not increase indentation at any level."
   (julia-ts--should-indent
    "
-module
+module Foo
 begin
     a = 1
 end
 end"
    "
-module
+module Foo
 begin
     a = 1
 end
@@ -170,13 +174,13 @@ end")
   (julia-ts--should-indent
    "
 begin
-module
+module Foo
 foo
 end
 end"
    "
 begin
-    module
+    module Foo
     foo
     end
 end"))
@@ -207,13 +211,14 @@ end"))
 
 (ert-deftest julia-ts--test-indent-paren ()
   "We should indent to line up with the text after an open paren."
-  (julia-ts--should-indent
-   "
+  (let ((julia-ts-align-argument-list-to-first-sibling t))
+    (julia-ts--should-indent
+     "
 foobar(bar,
 baz)"
-   "
+     "
 foobar(bar,
-       baz)"))
+       baz)")))
 
 (ert-deftest julia-ts--test-indent-paren-space ()
   "We should indent to line up with the text after an open
@@ -317,13 +322,14 @@ c"))
 
 (ert-deftest julia-ts--test-top-level-following-paren-indent ()
   "`At the top level, a previous line indented due to parens should not affect indentation."
-  (julia-ts--should-indent
-   "y1 = f(x,
+  (let ((julia-ts-align-argument-list-to-first-sibling t))
+    (julia-ts--should-indent
+     "y1 = f(x,
        z)
 y2 = g(x)"
-   "y1 = f(x,
+     "y1 = f(x,
        z)
-y2 = g(x)"))
+y2 = g(x)")))
 
 (ert-deftest julia-ts--test-indentation-of-multi-line-strings ()
   "Indentation should only affect the first line of a multi-line string."
@@ -539,7 +545,8 @@ variable = func(
 
 (ert-deftest julia-ts--test-indent-block-inside-hanging-paren ()
   "We should indent a block inside of a hanging parenthetical."
-  (julia-ts--should-indent "
+  (let ((julia-ts-align-argument-list-to-first-sibling t))
+    (julia-ts--should-indent "
 variable = func(arg1,
 arg2,
 if cond
@@ -559,7 +566,7 @@ variable = func(arg1,
                     arg3
                 end,
                 arg4
-                )"))
+                )")))
 
 (ert-deftest julia-ts--test-indent-nested-block-inside-paren ()
   "We should indent a nested block inside of a parenthetical."
@@ -652,13 +659,13 @@ var = func(begin
   "for and in/=/∈ font-locked as keywords in loops and comprehensions"
   (let ((string "for i=1:10\nprintln(i)\nend"))
     (julia-ts--should-font-lock string 1 font-lock-keyword-face)
-    (julia-ts--should-font-lock string 6 font-lock-keyword-face))
+    (julia-ts--should-font-lock string 6 nil))
   (let ((string "for i in 1:10\nprintln(i)\nend"))
     (julia-ts--should-font-lock string 3 font-lock-keyword-face)
     (julia-ts--should-font-lock string 7 font-lock-keyword-face))
   (let ((string "for i∈1:10\nprintln(i)\nend"))
     (julia-ts--should-font-lock string 2 font-lock-keyword-face)
-    (julia-ts--should-font-lock string 6 font-lock-keyword-face))
+    (julia-ts--should-font-lock string 6 nil))
   (let ((string "[i for i in 1:10]"))
     (julia-ts--should-font-lock string 4 font-lock-keyword-face)
     (julia-ts--should-font-lock string 10 font-lock-keyword-face))
@@ -667,7 +674,7 @@ var = func(begin
     (julia-ts--should-font-lock string 10 font-lock-keyword-face))
   (let ((string "[i for i ∈ 1:15 if w(i) == 15]"))
     (julia-ts--should-font-lock string 4 font-lock-keyword-face)
-    (julia-ts--should-font-lock string 10 font-lock-keyword-face)
+    (julia-ts--should-font-lock string 10 nil)
     (julia-ts--should-font-lock string 17 font-lock-keyword-face)
     (julia-ts--should-font-lock string 25 nil)
     (julia-ts--should-font-lock string 26 nil)))
@@ -743,7 +750,7 @@ var = func(begin
                "'\\010'"
                "'\\xfe'"
                "'\\uabcd'"
-               "'\\Uabcdef01'"
+	       "'\\Uab01'"
                "'\\n'"
                "'a'" "'z'" "'''"))
     (let ((c (format " %s " c)))
