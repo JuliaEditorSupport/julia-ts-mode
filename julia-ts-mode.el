@@ -196,7 +196,11 @@ Otherwise, the indentation is:
      (short_function_definition
       name: (identifier) @font-lock-function-name-face)
      (short_function_definition
-      name: (field_expression (identifier) "." (identifier) @font-lock-function-name-face)))
+      name: (field_expression (identifier) "." (identifier) @font-lock-function-name-face))
+     (struct_definition
+      name: (identifier) @font-lock-type-face))
+   ;; TODO: abstract type definitions not font-locked. Emacs doesn't show a node spanning
+   ;; just the "abstract type" portion of the definition, so some hackery will be required
 
    :language 'julia
    :feature 'error
