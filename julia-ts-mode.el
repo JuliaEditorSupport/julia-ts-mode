@@ -160,20 +160,22 @@ Otherwise, the indentation is:
    :feature 'assignment
    `((assignment (identifier) @font-lock-variable-name-face (_))
      (assignment
-      (field_expression (identifier) "." (identifier) @font-lock-variable-name-face)
-      (operator))
-     (assignment (bare_tuple (identifier) @font-lock-variable-name-face))
+      :anchor
+      (field_expression
+       value: (identifier) "." (identifier) @font-lock-variable-name-face))
+     (assignment (open_tuple (identifier) @font-lock-variable-name-face))
      (assignment
-      (bare_tuple
-       (field_expression (identifier) "." (identifier) @font-lock-variable-name-face))
-      (operator))
+      :anchor
+      (open_tuple
+       (field_expression
+        value: (identifier) "." (identifier) @font-lock-variable-name-face)))
      (local_statement (identifier) @font-lock-variable-name-face)
      (let_binding (identifier) @font-lock-variable-name-face)
      (global_statement (identifier) @font-lock-variable-name-face))
 
    :language 'julia
    :feature 'constant
-   `((quote_expression) @julia-ts-quoted-symbol-face
+   `((named_argument (identifier) @julia-ts-quoted-symbol-face (operator))
      ((identifier) @font-lock-builtin-face
       (:match
        "^\\(:?NaN\\|NaN16\\|NaN32\\|NaN64\\|Inf\\|Inf16\\|Inf32\\|Inf64\\|nothing\\|missing\\|undef\\)$"
@@ -187,26 +189,36 @@ Otherwise, the indentation is:
    :language 'julia
    :feature 'definition
    `((function_definition
-      name: (identifier) @font-lock-function-name-face)
+      (signature (identifier) @font-lock-function-name-face))
      (function_definition
-      name: (field_expression (identifier) "." (identifier) @font-lock-function-name-face))
+      (signature
+       (call_expression (identifier) @font-lock-function-name-face)))
+     (function_definition
+      (signature
+       (call_expression
+        (field_expression
+         value: (identifier) "." (identifier) @font-lock-function-name-face))))
      (macro_definition
-      name: (identifier) @font-lock-function-name-face)
-     (short_function_definition
-      name: (identifier) @font-lock-function-name-face)
-     (short_function_definition
-      name: (field_expression (identifier) "." (identifier) @font-lock-function-name-face)))
+      (signature
+       (call_expression (identifier) @font-lock-function-name-face)))
+     (macro_definition
+      (signature
+       (call_expression
+        (field_expression
+         value: (identifier) "." (identifier) @font-lock-function-name-face))))
+     (assignment
+      :anchor
+      (call_expression (identifier) @font-lock-function-name-face))
+     (assignment
+      :anchor
+      (call_expression
+       (field_expression
+        value: (identifier) "." (identifier) @font-lock-function-name-face))))
 
    :language 'julia
    :feature 'error
    :override t
    `((ERROR) @font-lock-warning-face)
-
-   :language 'julia
-   :feature 'interpolation
-   :override 'append
-   `((interpolation_expression) @julia-ts-interpolation-expression-face
-     (string_interpolation) @julia-ts-string-interpolation-face)
 
    :language 'julia
    :feature 'keyword
@@ -246,8 +258,31 @@ Otherwise, the indentation is:
      (["." "::"] @font-lock-type-face))
 
    :language 'julia
+   :feature 'interpolation
+   :override 'keep
+   `((interpolation_expression
+      "$" @julia-ts-interpolation-expression-face
+      (identifier) @default)
+     (interpolation_expression
+      "$" @julia-ts-interpolation-expression-face
+      (parenthesized_expression
+       "(" @julia-ts-interpolation-expression-face
+       _ @default
+       ")" @julia-ts-interpolation-expression-face))
+     (string_interpolation
+      "$" @julia-ts-string-interpolation-face
+      "(":? @julia-ts-string-interpolation-face
+      _ @default
+      ")":? @julia-ts-string-interpolation-face))
+
+   :language 'julia
+   :feature 'constant
+   :override 'keep
+   `((quote_expression) @julia-ts-quoted-symbol-face)
+
+   :language 'julia
    :feature 'string
-   :override 'append
+   :override 'keep
    `([(command_literal)
       (prefixed_command_literal)
       (string_literal)
@@ -261,8 +296,7 @@ Otherwise, the indentation is:
    :override t
    `((type_clause (operator) (_) @font-lock-type-face)
      (typed_expression (_) "::" (_) @font-lock-type-face)
-     (typed_parameter
-      type: (_) @font-lock-type-face)
+     (unary_typed_expression (_) @font-lock-type-face)
      (where_clause "where"
                    (curly_expression "{"
                                      (binary_expression (identifier)
@@ -361,7 +395,6 @@ Return nil if there is no name or if NODE is not a defun node."
   (pcase (treesit-node-type node)
     ((or "abstract_definition"
          "function_definition"
-         "short_function_definition"
          "struct_definition")
      (treesit-node-text
       (treesit-node-child-by-field-name node "name")
@@ -401,7 +434,7 @@ Return nil if there is no name or if NODE is not a defun node."
 
   ;; Imenu.
   (setq-local treesit-simple-imenu-settings
-              `(("Function" "\\`function_definition\\|short_function_definition\\'" nil nil)
+              `(("Function" "\\`function_definition\\'" nil nil)
                 ("Struct" "\\`struct_definition\\'" nil nil)))
 
   ;; Fontification
