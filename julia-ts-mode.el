@@ -81,20 +81,12 @@ Otherwise, the indentation is:
   :version "29.1"
   :type 'boolean)
 
-(defcustom julia-ts-align-parameter-list-to-first-sibling nil
-  "Align the parameter list to the first sibling.
-
-If it is set to t, the following indentation is used:
-
-    function myfunc(a, b,
-                    c, d)
-
-Otherwise, the indentation is:
-
-    function myfunc(a, b,
-        c, d)"
-  :version "29.1"
-  :type 'boolean)
+;; As of the grammar version 0.22, it uses the argument_list node for
+;; both function definitions and calls.
+(define-obsolete-variable-alias
+  'julia-ts-align-parameter-list-to-first-sibling
+  'julia-ts-align-argument-list-to-first-sibling
+  "0.3")
 
 (defcustom julia-ts-align-curly-brace-expressions-to-first-sibling nil
   "Align curly brace expressions to the first sibling.
@@ -328,12 +320,6 @@ Otherwise, the indentation is:
 
      ;; Alignment of argument lists.
      ,(if julia-ts-align-argument-list-to-first-sibling
-          `((julia-ts--parent-is-and-sibling-on-same-line "argument_list" 1) first-sibling 1)
-        `((julia-ts--parent-is-and-sibling-on-same-line "argument_list" 1) parent-bol julia-ts-indent-offset))
-     ((julia-ts--parent-is-and-sibling-not-on-same-line "argument_list" 1) parent-bol julia-ts-indent-offset)
-
-     ;; Alignment of parameter lists.
-     ,(if julia-ts-align-parameter-list-to-first-sibling
           `((julia-ts--parent-is-and-sibling-on-same-line "argument_list" 1) first-sibling 1)
         `((julia-ts--parent-is-and-sibling-on-same-line "argument_list" 1) parent-bol julia-ts-indent-offset))
      ((julia-ts--parent-is-and-sibling-not-on-same-line "argument_list" 1) parent-bol julia-ts-indent-offset)
