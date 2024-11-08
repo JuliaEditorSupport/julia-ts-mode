@@ -7,7 +7,7 @@
 ;; Keywords         : julia languages tree-sitter
 ;; Package-Requires : ((emacs "29.1") (julia-mode "0.4"))
 ;; URL              : https://github.com/ronisbr/julia-ts-mode
-;; Version          : 0.2.5
+;; Version          : 0.3
 ;;
 ;;; License:
 ;; Permission is hereby granted, free of charge, to any person obtaining
@@ -81,20 +81,12 @@ Otherwise, the indentation is:
   :version "29.1"
   :type 'boolean)
 
-(defcustom julia-ts-align-parameter-list-to-first-sibling nil
-  "Align the parameter list to the first sibling.
-
-If it is set to t, the following indentation is used:
-
-    function myfunc(a, b,
-                    c, d)
-
-Otherwise, the indentation is:
-
-    function myfunc(a, b,
-        c, d)"
-  :version "29.1"
-  :type 'boolean)
+;; As of the grammar version 0.22, it uses the argument_list node for both
+;; function definitions and calls.
+(define-obsolete-variable-alias
+  'julia-ts-align-parameter-list-to-first-sibling
+  'julia-ts-align-argument-list-to-first-sibling
+  "0.3")
 
 (defcustom julia-ts-align-curly-brace-expressions-to-first-sibling nil
   "Align curly brace expressions to the first sibling.
@@ -107,21 +99,6 @@ If it is set to t, the following indentation is used:
 Otherwise, the indentation is:
 
     MyType{A, B
-        C, D}"
-  :version "29.1"
-  :type 'boolean)
-
-(defcustom julia-ts-align-type-parameter-list-to-first-sibling nil
-  "Align type parameter lists to the first sibling.
-
-If it is set to t, the following indentation is used:
-
-    struct MyType{A, B
-                  C, D}
-
-Otherwise, the indentation is:
-
-    struct MyType{A, B,
         C, D}"
   :version "29.1"
   :type 'boolean)
@@ -206,6 +183,8 @@ Otherwise, the indentation is:
        (call_expression
         (field_expression
          value: (identifier) "." (identifier) @font-lock-function-name-face))))
+     (abstract_definition name: (identifier) @font-lock-type-face)
+     (struct_definition name: (identifier) @font-lock-type-face)
      (assignment
       :anchor
       (call_expression (identifier) @font-lock-function-name-face))
@@ -222,7 +201,7 @@ Otherwise, the indentation is:
 
    :language 'julia
    :feature 'keyword
-   `((abstract_definition) @font-lock-keyword-face
+   `((abstract_definition ["abstract" "type"] @font-lock-keyword-face)
      (break_statement) @font-lock-keyword-face
      (continue_statement) @font-lock-keyword-face
      (for_binding "in" @font-lock-keyword-face)
@@ -252,7 +231,6 @@ Otherwise, the indentation is:
      (for_binding ["=" "∈"] @font-lock-type-face)
      (function_expression "->" @font-lock-type-face)
      (operator) @font-lock-type-face
-     (slurp_parameter "..." @font-lock-type-face)
      (splat_expression "..." @font-lock-type-face)
      (ternary_expression ["?" ":"] @font-lock-type-face)
      (["." "::"] @font-lock-type-face))
@@ -354,28 +332,6 @@ Otherwise, the indentation is:
         `((julia-ts--parent-is-and-sibling-on-same-line "argument_list" 1) parent-bol julia-ts-indent-offset))
      ((julia-ts--parent-is-and-sibling-not-on-same-line "argument_list" 1) parent-bol julia-ts-indent-offset)
 
-     ;; Alignment of parameter lists.
-     ,(if julia-ts-align-parameter-list-to-first-sibling
-          `((julia-ts--parent-is-and-sibling-on-same-line "parameter_list" 1) first-sibling 1)
-        `((julia-ts--parent-is-and-sibling-on-same-line "parameter_list" 1) parent-bol julia-ts-indent-offset))
-     ((julia-ts--parent-is-and-sibling-not-on-same-line "parameter_list" 1) parent-bol julia-ts-indent-offset)
-
-     ;; Alignment of type parameter lists.
-     ,(if julia-ts-align-argument-list-to-first-sibling
-          `((julia-ts--parent-is-and-sibling-on-same-line "type_parameter_list" 1) first-sibling 1)
-        `((julia-ts--parent-is-and-sibling-on-same-line "type_parameter_list" 1) parent-bol julia-ts-indent-offset))
-     ((julia-ts--parent-is-and-sibling-not-on-same-line "type_parameter_list" 1) parent-bol julia-ts-indent-offset)
-
-     ;; The keyword parameters is a child of parameter list. Hence, we need to
-     ;; consider its grand parent to perform the alignment.
-     ,@(if julia-ts-align-parameter-list-to-first-sibling
-           (list '((n-p-gp nil "keyword_parameters" "parameter_list")
-                   julia-ts--grand-parent-first-sibling
-                   1))
-         (list '((n-p-gp nil "keyword_parameters" "parameter_list")
-                 julia-ts--grand-parent-bol
-                 julia-ts-indent-offset)))
-
      ;; Match if the node is inside an assignment.
      ;; Note that if the user wants to align the assignment expressions on the
      ;; first sibling, we should only check if the first sibling is not on the
@@ -393,12 +349,22 @@ Otherwise, the indentation is:
   "Return the defun name of NODE.
 Return nil if there is no name or if NODE is not a defun node."
   (pcase (treesit-node-type node)
-    ((or "abstract_definition"
-         "function_definition"
-         "struct_definition")
+    ((or "abstract_definition" "struct_definition")
      (treesit-node-text
       (treesit-node-child-by-field-name node "name")
-      t))))
+      t))
+    ("function_definition"
+     (when-let* ((node1 (julia-ts--child-of-type node "signature"))
+                 (node2 (julia-ts--child-of-type node1 "call_expression"))
+                 (node3 (treesit-node-child node2 0)))
+       (treesit-node-text node3)))))
+
+(defun julia-ts--child-of-type (node type)
+  "Return first child of NODE that has TYPE."
+  (car (treesit-filter-child
+        node
+        (lambda (child)
+          (equal (treesit-node-type child) type)))))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.jl\\'" . julia-ts-mode))
@@ -435,7 +401,8 @@ Return nil if there is no name or if NODE is not a defun node."
   ;; Imenu.
   (setq-local treesit-simple-imenu-settings
               `(("Function" "\\`function_definition\\'" nil nil)
-                ("Struct" "\\`struct_definition\\'" nil nil)))
+                ("Struct" "\\`struct_definition\\'" nil nil)
+                ("Type" "\\`abstract_definition\\'" nil nil)))
 
   ;; Fontification
   (setq-local treesit-font-lock-settings julia-ts--treesit-font-lock-settings)
