@@ -338,7 +338,7 @@ Otherwise, the indentation is:
      ((julia-ts--parent-is-and-sibling-not-on-same-line "curly_expression" 1) parent-bol julia-ts-indent-offset)
 
      ;; Align the expressions in the if statement conditions.
-     ((julia-ts--ancestor-is "if_statement") parent-bol julia-ts-indent-offset)
+     ((parent-is "if_statement") parent-bol julia-ts-indent-offset)
 
      ;; For all other expressions, keep the indentation as the parent.
      ((parent-is "_expression") parent 0)
