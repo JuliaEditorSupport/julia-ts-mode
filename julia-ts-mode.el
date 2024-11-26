@@ -192,7 +192,17 @@ Otherwise, the indentation is:
       :anchor
       (call_expression
        (field_expression
-        value: (identifier) "." (identifier) @font-lock-function-name-face))))
+        value: (identifier) "." (identifier) @font-lock-function-name-face)))
+     (assignment
+      :anchor
+      (where_expression
+       (call_expression (identifier) @font-lock-function-name-face)))
+     (assignment
+      :anchor
+      (where_expression
+       (call_expression
+        (field_expression
+         value: (identifier) "." (identifier) @font-lock-function-name-face)))))
 
    :language 'julia
    :feature 'error
