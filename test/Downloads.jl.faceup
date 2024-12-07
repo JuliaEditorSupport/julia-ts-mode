@@ -1,0 +1,517 @@
+«s:"""
+The `Downloads` module exports a function [`download`](@ref), which provides cross-platform, multi-protocol,
+in-process download functionality implemented with [libcurl](https://curl.haxx.se/libcurl/).   It is used
+for the `Base.download` function in Julia 1.6 or later.
+
+More generally, the module exports functions and types that provide lower-level control and diagnostic information
+for file downloading:
+- [`download`](@ref) — download a file from a URL, erroring if it can't be downloaded
+- [`request`](@ref) — request a URL, returning a `Response` object indicating success
+- [`Response`](@ref) — a type capturing the status and other metadata about a request
+- [`RequestError`](@ref) — an error type thrown by `download` and `request` on error
+- [`Downloader`](@ref) — an object encapsulating shared resources for downloading
+"""»
+«k:module» Downloads
+
+«k:using» Base.Experimental: «:julia-ts-macro-face:@sync»
+«k:using» NetworkOptions
+«k:using» ArgTools
+
+include(«s:"Curl/Curl.jl"»)
+«k:using» .Curl
+
+«k:export» download, request, Downloader, Response, RequestError, default_downloader!
+
+«x:## public API types ##»
+
+«s:"""
+    Downloader(; [ grace::Real = 30 ])
+
+`Downloader` objects are used to perform individual `download` operations.
+Connections, name lookups and other resources are shared within a `Downloader`.
+These connections and resources are cleaned up after a configurable grace period
+(default: 30 seconds) since anything was downloaded with it, or when it is
+garbage collected, whichever comes first. If the grace period is set to zero,
+all resources will be cleaned up immediately as soon as there are no more
+ongoing downloads in progress. If the grace period is set to `Inf` then
+resources are not cleaned up until `Downloader` is garbage collected.
+"""»
+«k:mutable» «k:struct» «t:Downloader»
+    multi::«t:Multi»
+    ca_roots::«t:Union{String, Nothing}»
+    easy_hook::«t:Union{Function, Nothing}»
+
+    «f:Downloader»(multi::«t:Multi») = new(multi, get_ca_roots(), EASY_HOOK[])
+«k:end»
+«f:Downloader»(; grace::«t:Real»=«c:30») = Downloader(Multi(grace_ms(grace)))
+
+«k:function» «f:grace_ms»(grace::«t:Real»)
+    grace < «c:0» && throw(ArgumentError(«s:"grace period cannot be negative: »«:julia-ts-string-interpolation-face:$»«D:grace»«s:"»))
+    grace <= typemax(UInt64) ÷ «c:1000» ? round(UInt64, «c:1000»*grace) : typemax(UInt64)
+«k:end»
+
+«k:function» «f:easy_hook»(downloader::«t:Downloader», easy::«t:Easy», info::«t:NamedTuple»)
+    «v:hook» = downloader.easy_hook
+    hook !== «b:nothing» && Base.invokelatest(hook, easy, info)
+«k:end»
+
+«f:get_ca_roots»() = Curl.SYSTEM_SSL ? ca_roots() : ca_roots_path()
+
+«k:function» «f:set_ca_roots»(downloader::«t:Downloader», easy::«t:Easy»)
+    «v:ca_roots» = downloader.ca_roots
+    ca_roots !== «b:nothing» && set_ca_roots_path(easy, ca_roots)
+«k:end»
+
+«k:const» «v:DOWNLOAD_LOCK» = ReentrantLock()
+«k:const» «v:DOWNLOADER» = Ref{Union{Downloader, Nothing}}(«b:nothing»)
+
+«s:"""
+`EASY_HOOK` is a modifable global hook to used as the default `easy_hook` on
+new `Downloader` objects. This supplies a mechanism to set options for the
+`Downloader` via `Curl.setopt`
+
+It is expected to be function taking two arguments: an `Easy` struct and an
+`info` NamedTuple with names `url`, `method` and `headers`.
+"""»
+«k:const» «v:EASY_HOOK» = Ref{Union{Function, Nothing}}(«b:nothing»)
+
+«s:"""
+    struct Response
+        proto   :: String
+        url     :: String
+        status  :: Int
+        message :: String
+        headers :: Vector{Pair{String,String}}
+    end
+
+`Response` is a type capturing the properties of a successful response to a
+request as an object. It has the following fields:
+
+- `proto`: the protocol that was used to get the response
+- `url`: the URL that was ultimately requested after following redirects
+- `status`: the status code of the response, indicating success, failure, etc.
+- `message`: a textual message describing the nature of the response
+- `headers`: any headers that were returned with the response
+
+The meaning and availability of some of these responses depends on the protocol
+used for the request. For many protocols, including HTTP/S and S/FTP, a 2xx
+status code indicates a successful response. For responses in protocols that do
+not support headers, the headers vector will be empty. HTTP/2 does not include a
+status message, only a status code, so the message will be empty.
+"""»
+«k:struct» «t:Response»
+    proto   :: «t:Union{String, Nothing}»
+    url     :: «t:String» «x:# redirected URL»
+    status  :: «t:Int»
+    message :: «t:String»
+    headers :: «t:Vector{Pair{String,String}}»
+«k:end»
+
+Curl.«f:status_ok»(response::«t:Response») = status_ok(response.proto, response.status)
+
+«s:"""
+    struct RequestError <: ErrorException
+        url      :: String
+        code     :: Int
+        message  :: String
+        response :: Response
+    end
+
+`RequestError` is a type capturing the properties of a failed response to a
+request as an exception object:
+
+- `url`: the original URL that was requested without any redirects
+- `code`: the libcurl error code; `0` if a protocol-only error occurred
+- `message`: the libcurl error message indicating what went wrong
+- `response`: response object capturing what response info is available
+
+The same `RequestError` type is thrown by `download` if the request was
+successful but there was a protocol-level error indicated by a status code that
+is not in the 2xx range, in which case `code` will be zero and the `message`
+field will be the empty string. The `request` API only throws a `RequestError`
+if the libcurl error `code` is non-zero, in which case the included `response`
+object is likely to have a `status` of zero and an empty message. There are,
+however, situations where a curl-level error is thrown due to a protocol error,
+in which case both the inner and outer code and message may be of interest.
+"""»
+«k:struct» «t:RequestError» <: «t:Exception»
+    url      :: «t:String» «x:# original URL»
+    code     :: «t:Int»
+    message  :: «t:String»
+    response :: «t:Response»
+«k:end»
+
+«k:function» Base.«f:showerror»(io::«t:IO», err::«t:RequestError»)
+    print(io, «s:"RequestError: »«:julia-ts-string-interpolation-face:$(»«D:error_message(err)»«:julia-ts-string-interpolation-face:)»«s: while requesting »«:julia-ts-string-interpolation-face:$(»«D:err.url»«:julia-ts-string-interpolation-face:)»«s:"»)
+«k:end»
+
+«k:function» «f:error_message»(err::«t:RequestError»)
+    «v:errstr» = err.message
+    «v:status» = err.response.status
+    «v:message» = err.response.message
+    «v:status_re» = Regex(status == «c:0» ? «s:""» : «s:"\\b»«:julia-ts-string-interpolation-face:$»«D:status»«s:\\b"»)
+
+    err.code == Curl.CURLE_OK &&
+        «k:return» isempty(message) ? «s:"Error status »«:julia-ts-string-interpolation-face:$»«D:status»«s:"» :
+            contains(message, status_re) ? message :
+                «s:"»«:julia-ts-string-interpolation-face:$»«D:message»«s: (status »«:julia-ts-string-interpolation-face:$»«D:status»«s:)"»
+
+    isempty(message) && !isempty(errstr) &&
+        «k:return» status == «c:0» ? errstr : «s:"»«:julia-ts-string-interpolation-face:$»«D:errstr»«s: (status »«:julia-ts-string-interpolation-face:$»«D:status»«s:)"»
+
+    isempty(message) && («v:message» = «s:"Status »«:julia-ts-string-interpolation-face:$»«D:status»«s:"»)
+    isempty(errstr)  && («v:errstr» = «s:"curl error »«:julia-ts-string-interpolation-face:$(»«D:err.code»«:julia-ts-string-interpolation-face:)»«s:"»)
+
+    !contains(message, status_re) && !contains(errstr, status_re) &&
+        («v:errstr» = «s:"status »«:julia-ts-string-interpolation-face:$»«D:status»«s:; »«:julia-ts-string-interpolation-face:$»«D:errstr»«s:"»)
+
+    «k:return» «s:"»«:julia-ts-string-interpolation-face:$»«D:message»«s: (»«:julia-ts-string-interpolation-face:$»«D:errstr»«s:)"»
+«k:end»
+
+«x:## download API ##»
+
+«s:"""
+    download(url, [ output = tempname() ];
+        [ method = "GET", ]
+        [ headers = <none>, ]
+        [ timeout = <none>, ]
+        [ progress = <none>, ]
+        [ verbose = false, ]
+        [ debug = <none>, ]
+        [ downloader = <default>, ]
+    ) -> output
+
+        url        :: AbstractString
+        output     :: Union{AbstractString, AbstractCmd, IO}
+        method     :: AbstractString
+        headers    :: Union{AbstractVector, AbstractDict}
+        timeout    :: Real
+        progress   :: (total::Integer, now::Integer) --> Any
+        verbose    :: Bool
+        debug      :: (type, message) --> Any
+        downloader :: Downloader
+
+Download a file from the given url, saving it to `output` or if not specified, a
+temporary path. The `output` can also be an `IO` handle, in which case the body
+of the response is streamed to that handle and the handle is returned. If
+`output` is a command, the command is run and output is sent to it on stdin.
+
+If the `downloader` keyword argument is provided, it must be a `Downloader`
+object. Resources and connections will be shared between downloads performed by
+the same `Downloader` and cleaned up automatically when the object is garbage
+collected or there have been no downloads performed with it for a grace period.
+See `Downloader` for more info about configuration and usage.
+
+If the `headers` keyword argument is provided, it must be a vector or dictionary
+whose elements are all pairs of strings. These pairs are passed as headers when
+downloading URLs with protocols that supports them, such as HTTP/S.
+
+The `timeout` keyword argument specifies a timeout for the download to complete in
+seconds, with a resolution of milliseconds. By default no timeout is set, but this
+can also be explicitly requested by passing a timeout value of `Inf`. Separately,
+if 20 seconds elapse without receiving any data, the download will timeout. See
+extended help for how to disable this timeout.
+
+If the `progress` keyword argument is provided, it must be a callback function
+which will be called whenever there are updates about the size and status of the
+ongoing download. The callback must take two integer arguments: `total` and
+`now` which are the total size of the download in bytes, and the number of bytes
+which have been downloaded so far. Note that `total` starts out as zero and
+remains zero until the server gives an indication of the total size of the
+download (e.g. with a `Content-Length` header), which may never happen. So a
+well-behaved progress callback should handle a total size of zero gracefully.
+
+If the `verbose` option is set to true, `libcurl`, which is used to implement
+the download functionality will print debugging information to `stderr`. If the
+`debug` option is set to a function accepting two `String` arguments, then the
+verbose option is ignored and instead the data that would have been printed to
+`stderr` is passed to the `debug` callback with `type` and `message` arguments.
+The `type` argument indicates what kind of event has occurred, and is one of:
+`TEXT`, `HEADER IN`, `HEADER OUT`, `DATA IN`, `DATA OUT`, `SSL DATA IN` or `SSL
+DATA OUT`. The `message` argument is the description of the debug event.
+
+## Extended Help
+
+For further customization, use a [`Downloader`](@ref) and
+[`easy_hook`s](https://github.com/JuliaLang/Downloads.jl#mutual-tls-using-downloads).
+For example, to disable the 20 second timeout when no data is received, you may
+use the following:
+
+```jl
+downloader = Downloads.Downloader()
+downloader.easy_hook = (easy, info) -> Downloads.Curl.setopt(easy, Downloads.Curl.CURLOPT_LOW_SPEED_TIME, 0)
+
+Downloads.download("https://httpbingo.julialang.org/delay/30"; downloader)
+```
+"""»
+«k:function» «f:download»(
+    url        :: «t:AbstractString»,
+    output     :: «t:Union{ArgWrite, Nothing}» = «b:nothing»;
+    method     :: «t:Union{AbstractString, Nothing}» = «b:nothing»,
+    headers    :: «t:Union{AbstractVector, AbstractDict}» = Pair{String,String}[],
+    timeout    :: «t:Real» = «b:Inf»,
+    progress   :: «t:Union{Function, Nothing}» = «b:nothing»,
+    verbose    :: «t:Bool» = «c:false»,
+    debug      :: «t:Union{Function, Nothing}» = «b:nothing»,
+    downloader :: «t:Union{Downloader, Nothing}» = «b:nothing»,
+) :: «t:ArgWrite»
+    arg_write(output) «k:do» output
+        «v:response» = request(
+            url,
+            «:julia-ts-quoted-symbol-face:output» = output,
+            «:julia-ts-quoted-symbol-face:method» = method,
+            «:julia-ts-quoted-symbol-face:headers» = headers,
+            «:julia-ts-quoted-symbol-face:timeout» = timeout,
+            «:julia-ts-quoted-symbol-face:progress» = progress,
+            «:julia-ts-quoted-symbol-face:verbose» = verbose,
+            «:julia-ts-quoted-symbol-face:debug» = debug,
+            «:julia-ts-quoted-symbol-face:downloader» = downloader,
+        )::«t:Response»
+        status_ok(response) && «k:return» output
+        throw(RequestError(url, Curl.CURLE_OK, «s:""», response))
+    «k:end»
+«k:end»
+
+«x:## request API ##»
+
+«s:"""
+    request(url;
+        [ input = <none>, ]
+        [ output = <none>, ]
+        [ method = input ? "PUT" : output ? "GET" : "HEAD", ]
+        [ headers = <none>, ]
+        [ timeout = <none>, ]
+        [ progress = <none>, ]
+        [ verbose = false, ]
+        [ debug = <none>, ]
+        [ throw = true, ]
+        [ downloader = <default>, ]
+        [ interrupt = <none>, ]
+    ) -> Union{Response, RequestError}
+
+        url        :: AbstractString
+        input      :: Union{AbstractString, AbstractCmd, IO}
+        output     :: Union{AbstractString, AbstractCmd, IO}
+        method     :: AbstractString
+        headers    :: Union{AbstractVector, AbstractDict}
+        timeout    :: Real
+        progress   :: (dl_total, dl_now, ul_total, ul_now) --> Any
+        verbose    :: Bool
+        debug      :: (type, message) --> Any
+        throw      :: Bool
+        downloader :: Downloader
+        interrupt  :: Base.Event
+
+Make a request to the given url, returning a `Response` object capturing the
+status, headers and other information about the response. The body of the
+response is written to `output` if specified and discarded otherwise. For HTTP/S
+requests, if an `input` stream is given, a `PUT` request is made; otherwise if
+an `output` stream is given, a `GET` request is made; if neither is given a
+`HEAD` request is made. For other protocols, appropriate default methods are
+used based on what combination of input and output are requested. The following
+options differ from the `download` function:
+
+- `input` allows providing a request body; if provided default to `PUT` request
+- `progress` is a callback taking four integers for upload and download progress
+- `throw` controls whether to throw or return a `RequestError` on request error
+
+Note that unlike `download` which throws an error if the requested URL could not
+be downloaded (indicated by non-2xx status code), `request` returns a `Response`
+object no matter what the status code of the response is. If there is an error
+with getting a response at all, then a `RequestError` is thrown or returned.
+
+If the `interrupt` keyword argument is provided, it must be a `Base.Event` object.
+If the event is triggered while the request is in progress, the request will be
+cancelled and an error will be thrown. This can be used to interrupt a long
+running request, for example if the user wants to cancel a download.
+"""»
+«k:function» «f:request»(
+    url        :: «t:AbstractString»;
+    input      :: «t:Union{ArgRead, Nothing}» = «b:nothing»,
+    output     :: «t:Union{ArgWrite, Nothing}» = «b:nothing»,
+    method     :: «t:Union{AbstractString, Nothing}» = «b:nothing»,
+    headers    :: «t:Union{AbstractVector, AbstractDict}» = Pair{String,String}[],
+    timeout    :: «t:Real» = «b:Inf»,
+    progress   :: «t:Union{Function, Nothing}» = «b:nothing»,
+    verbose    :: «t:Bool» = «c:false»,
+    debug      :: «t:Union{Function, Nothing}» = «b:nothing»,
+    throw      :: «t:Bool» = «c:true»,
+    downloader :: «t:Union{Downloader, Nothing}» = «b:nothing»,
+    interrupt  :: «t:Union{Nothing, Base.Event}» = «b:nothing»,
+) :: «t:Union{Response, RequestError}»
+    «k:if» downloader === «b:nothing»
+        lock(DOWNLOAD_LOCK) «k:do»
+            «v:downloader» = DOWNLOADER[]
+            «k:if» downloader === «b:nothing»
+                «v:downloader» = DOWNLOADER[] = Downloader()
+            «k:end»
+        «k:end»
+    «k:end»
+    «k:local» «v:response»
+    «v:have_input» = input !== «b:nothing»
+    «v:have_output» = output !== «b:nothing»
+    «v:input» = something(input, devnull)
+    «v:output» = something(output, devnull)
+    «v:input_size» = arg_read_size(input)
+    «k:if» input_size === «b:nothing»
+        «x:# take input_size from content-length header if one is supplied»
+        «v:input_size» = content_length(headers)
+    «k:end»
+    «v:progress» = p_func(progress, input, output)
+    arg_read(input) «k:do» input
+        arg_write(output) «k:do» output
+            with_handle(Easy()) «k:do» easy
+                «x:# setup the request»
+                set_url(easy, url)
+                set_timeout(easy, timeout)
+                set_verbose(easy, verbose)
+                set_debug(easy, debug)
+                add_headers(easy, headers)
+
+                «x:# libcurl does not set the default header reliably so set it»
+                «x:# explicitly unless user has specified it, xref»
+                «x:# https://github.com/JuliaLang/Pkg.jl/pull/2357»
+                «k:if» !any(kv -> lowercase(kv[«c:1»]) == «s:"user-agent"», headers)
+                    Curl.add_header(easy, «s:"User-Agent"», Curl.USER_AGENT)
+                «k:end»
+
+                «k:if» have_input
+                    enable_upload(easy)
+                    «k:if» input_size !== «b:nothing»
+                        set_upload_size(easy, input_size)
+                    «k:end»
+                    «k:if» applicable(seek, input, «c:0»)
+                        set_seeker(easy) «k:do» offset
+                            seek(input, Int(offset))
+                        «k:end»
+                    «k:end»
+                «k:else»
+                    set_body(easy, have_output && method != «s:"HEAD"»)
+                «k:end»
+                method !== «b:nothing» && set_method(easy, method)
+                progress !== «b:nothing» && enable_progress(easy)
+                set_ca_roots(downloader, easy)
+                «v:info» = (url = url, method = method, headers = headers)
+                easy_hook(downloader, easy, info)
+
+                «x:# do the request»
+                add_handle(downloader.multi, easy)
+                «v:interrupted» = Threads.Atomic{Bool}(«c:false»)
+                «k:if» interrupt !== «b:nothing»
+                    «v:interrupt_task» = «:julia-ts-macro-face:@async» «k:begin»
+                        «x:# wait for the interrupt event»
+                        wait(interrupt)
+                        «x:# cancel the request»
+                        remove_handle(downloader.multi, easy)
+                        close(easy.output)
+                        close(easy.progress)
+                        interrupted[] = «c:true»
+                        close(input)
+                        notify(easy.ready)
+                    «k:end»
+                «k:else»
+                    «v:interrupt_task» = «b:nothing»
+                «k:end»
+                «k:try» «x:# ensure handle is removed»
+                    «:julia-ts-macro-face:@sync» «k:begin»
+                        «:julia-ts-macro-face:@async» «k:for» buf «k:in» easy.output
+                            write(output, buf)
+                        «k:end»
+                        «k:if» progress !== «b:nothing»
+                            «:julia-ts-macro-face:@async» «k:for» prog «k:in» easy.progress
+                                progress(prog...)
+                            «k:end»
+                        «k:end»
+                        «k:if» have_input
+                            «:julia-ts-macro-face:@async» upload_data(easy, input)
+                        «k:end»
+                    «k:end»
+                «k:finally»
+                    «k:if» !(interrupted[])
+                        «k:if» interrupt_task !== «b:nothing»
+                            «x:# trigger interrupt»
+                            notify(interrupt)
+                            wait(interrupt_task)
+                        «k:else»
+                            remove_handle(downloader.multi, easy)
+                        «k:end»
+                    «k:end»
+                «k:end»
+
+                «x:# return the response or throw an error»
+                «v:response» = Response(get_response_info(easy)...)
+                easy.code == Curl.CURLE_OK && «k:return» response
+                «v:message» = get_curl_errstr(easy)
+                «k:if» easy.code == typemax(Curl.CURLcode)
+                    «x:# uninitialized code, likely a protocol error»
+                    «v:code» = Int(«c:0»)
+                «k:else»
+                    «v:code» = Int(easy.code)
+                «k:end»
+                «v:response» = RequestError(url, code, message, response)
+                throw && Base.throw(response)
+            «k:end»
+        «k:end»
+    «k:end»
+    «k:return» response
+«k:end»
+
+«x:## helper functions ##»
+
+«k:function» «f:p_func»(progress::«t:Function», input::«t:ArgRead», output::«t:ArgWrite»)
+    hasmethod(progress, NTuple{«c:4»,Int}) && «k:return» progress
+    hasmethod(progress, NTuple{«c:2»,Int}) ||
+        throw(ArgumentError(«s:"invalid progress callback"»))
+
+    input === devnull && output !== devnull &&
+        «k:return» (total, now, _, _) -> progress(total, now)
+    input !== devnull && output === devnull &&
+        «k:return» (_, _, total, now) -> progress(total, now)
+
+    (dl_total, dl_now, ul_total, ul_now) ->
+        progress(dl_total + ul_total, dl_now + ul_now)
+«k:end»
+«f:p_func»(progress::«t:Nothing», input::«t:ArgRead», output::«t:ArgWrite») = «b:nothing»
+
+«f:arg_read_size»(path::«t:AbstractString») = filesize(path)
+«f:arg_read_size»(io::«t:Base.GenericIOBuffer») = bytesavailable(io)
+«f:arg_read_size»(::«t:Base.DevNull») = «c:0»
+«f:arg_read_size»(::«t:Any») = «b:nothing»
+
+«k:function» «f:content_length»(headers::«t:Union{AbstractVector, AbstractDict}»)
+    «k:for» (key, value) «k:in» headers
+        «k:if» lowercase(key) == «s:"content-length"» && isa(value, AbstractString)
+            «k:return» tryparse(Int, value)
+        «k:end»
+    «k:end»
+    «k:return» «b:nothing»
+«k:end»
+
+«s:"""
+    default_downloader!(
+        downloader = <none>
+    )
+
+        downloader :: Downloader
+
+Set the default `Downloader`. If no argument is provided, resets the default downloader so that a fresh one is created the next time the default downloader is needed.
+"""»
+«k:function» «f:default_downloader!»(
+    downloader :: «t:Union{Downloader, Nothing}» = «b:nothing»
+)
+    lock(DOWNLOAD_LOCK) «k:do»
+        DOWNLOADER[] = downloader
+    «k:end»
+«k:end»
+
+«x:# Precompile»
+«k:let»
+    Curl.__init__()
+    «v:d» = Downloader()
+    «v:f» = mktemp()[«c:1»]
+    download(«s:"file://"» * f; «:julia-ts-quoted-symbol-face:downloader»=d)
+    precompile(Tuple{typeof(Downloads.download), String, String})
+    precompile(Tuple{typeof(Downloads.Curl.status_2xx_ok), Int64})
+«k:end»
+
+«k:end» «x:# module»

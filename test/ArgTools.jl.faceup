@@ -1,0 +1,338 @@
+«k:module» ArgTools
+
+«k:export»
+    arg_read,  ArgRead,  arg_readers,
+    arg_write, ArgWrite, arg_writers,
+    arg_isdir, arg_mkdir, «:julia-ts-macro-face:@arg_test»
+
+«k:import» Base: AbstractCmd, CmdRedirect, Process
+
+«k:if» isdefined(Base.Filesystem, «:julia-ts-quoted-symbol-face::prepare_for_deletion»)
+    «k:using» Base.Filesystem: prepare_for_deletion
+«k:else»
+    «k:function» «f:prepare_for_deletion»(path::«t:AbstractString»)
+        «k:try» prepare_for_deletion_core(path)
+        «k:catch»
+        «k:end»
+    «k:end»
+    «k:function» «f:prepare_for_deletion_core»(path::«t:AbstractString»)
+        isdir(path) || «k:return»
+        chmod(path, filemode(path) | «c:0o333»)
+        «k:for» name «k:in» readdir(path)
+            «v:path′» = joinpath(path, name)
+            prepare_for_deletion_core(path′)
+        «k:end»
+    «k:end»
+«k:end»
+
+«k:const» «v:nolock_docstring» = «s:"""
+Note: when opening a file, ArgTools will pass `lock = false` to the file `open(...)` call.
+Therefore, the object returned by this function should not be used from multiple threads.
+This restriction may be relaxed in the future, which would not break any working code.
+"""»
+
+«k:if» VERSION ≥ «s:v"1.5"»
+    «f:open_nolock»(args...; kws...) = open(args...; kws..., «:julia-ts-quoted-symbol-face:lock»=«c:false»)
+«k:else»
+    «f:open_nolock»(args...; kws...) = open(args...; kws...)
+«k:end»
+
+«x:## main API ##»
+
+«s:"""
+    ArgRead = Union{AbstractString, AbstractCmd, IO}
+
+The `ArgRead` types is a union of the types that the `arg_read` function knows
+how to convert into readable IO handles. See [`arg_read`](@ref) for details.
+"""»
+«k:const» «v:ArgRead» = Union{AbstractString, AbstractCmd, IO}
+
+«s:"""
+    ArgWrite = Union{AbstractString, AbstractCmd, IO}
+
+The `ArgWrite` types is a union of the types that the `arg_write` function knows
+how to convert into writeable IO handles, except for `Nothing` which `arg_write`
+handles by generating a temporary file. See [`arg_write`](@ref) for details.
+"""»
+«k:const» «v:ArgWrite» = Union{AbstractString, AbstractCmd, IO}
+
+«s:"""
+    arg_read(f::Function, arg::ArgRead) -> f(arg_io)
+
+The `arg_read` function accepts an argument `arg` that can be any of these:
+
+- `AbstractString`: a file path to be opened for reading
+- `AbstractCmd`: a command to be run, reading from its standard output
+- `IO`: an open IO handle to be read from
+
+Whether the body returns normally or throws an error, a path which is opened
+will be closed before returning from `arg_read` and an `IO` handle will be
+flushed but not closed before returning from `arg_read`.
+
+»«:julia-ts-string-interpolation-face:$(»«D:nolock_docstring»«:julia-ts-string-interpolation-face:)»«s:
+"""»
+«f:arg_read»(f::«t:Function», arg::«t:AbstractString») = open_nolock(f, arg)
+«f:arg_read»(f::«t:Function», arg::«t:ArgRead») = open(f, arg)
+«f:arg_read»(f::«t:Function», arg::«t:IO») = f(arg)
+
+«s:"""
+    arg_write(f::Function, arg::ArgWrite) -> arg
+    arg_write(f::Function, arg::Nothing) -> tempname()
+
+The `arg_read` function accepts an argument `arg` that can be any of these:
+
+- `AbstractString`: a file path to be opened for writing
+- `AbstractCmd`: a command to be run, writing to its standard input
+- `IO`: an open IO handle to be written to
+- `Nothing`: a temporary path should be written to
+
+If the body returns normally, a path that is opened will be closed upon
+completion; an IO handle argument is left open but flushed before return. If the
+argument is `nothing` then a temporary path is opened for writing and closed
+open completion and the path is returned from `arg_write`. In all other cases,
+`arg` itself is returned. This is a useful pattern since you can consistently
+return whatever was written, whether an argument was passed or not.
+
+If there is an error during the evaluation of the body, a path that is opened by
+`arg_write` for writing will be deleted, whether it's passed in as a string or a
+temporary path generated when `arg` is `nothing`.
+
+»«:julia-ts-string-interpolation-face:$(»«D:nolock_docstring»«:julia-ts-string-interpolation-face:)»«s:
+"""»
+«k:function» «f:arg_write»(f::«t:Function», arg::«t:AbstractString»)
+    «k:try» open_nolock(f, arg, «:julia-ts-quoted-symbol-face:write»=«c:true»)
+    «k:catch»
+        rm(arg, «:julia-ts-quoted-symbol-face:force»=«c:true»)
+        rethrow()
+    «k:end»
+    «k:return» arg
+«k:end»
+
+«k:function» «f:arg_write»(f::«t:Function», arg::«t:AbstractCmd»)
+    open(f, arg, «:julia-ts-quoted-symbol-face:write»=«c:true»)
+    «k:return» arg
+«k:end»
+
+«k:function» «f:arg_write»(f::«t:Function», arg::«t:Nothing»)
+    «:julia-ts-macro-face:@static» «k:if» VERSION ≥ «s:v"1.5"»
+        «v:file» = tempname()
+        «v:io» = open_nolock(file, «:julia-ts-quoted-symbol-face:write»=«c:true»)
+    «k:else»
+        «v:file», «v:io» = mktemp()
+    «k:end»
+    «k:try» f(io)
+    «k:catch»
+        close(io)
+        rm(file, «:julia-ts-quoted-symbol-face:force»=«c:true»)
+        rethrow()
+    «k:end»
+    close(io)
+    «k:return» file
+«k:end»
+
+«k:function» «f:arg_write»(f::«t:Function», arg::«t:IO»)
+    «k:try» f(arg)
+    «k:finally»
+        flush(arg)
+    «k:end»
+    «k:return» arg
+«k:end»
+
+«s:"""
+    arg_isdir(f::Function, arg::AbstractString) -> f(arg)
+
+The `arg_isdir` function takes `arg` which must be the path to an existing
+directory (an error is raised otherwise) and passes that path to `f` finally
+returning the result of `f(arg)`. This is definitely the least useful tool
+offered by `ArgTools` and mostly exists for symmetry with `arg_mkdir` and to
+give consistent error messages.
+"""»
+«k:function» «f:arg_isdir»(f::«t:Function», arg::«t:AbstractString»)
+    isdir(arg) || error(«s:"arg_isdir: »«:julia-ts-string-interpolation-face:$(»«D:repr(arg)»«:julia-ts-string-interpolation-face:)»«s: not a directory"»)
+    «k:return» f(arg)
+«k:end»
+
+«s:"""
+    arg_mkdir(f::Function, arg::AbstractString) -> arg
+    arg_mkdir(f::Function, arg::Nothing) -> mktempdir()
+
+The `arg_mkdir` function takes `arg` which must either be one of:
+
+- a path to an already existing empty directory,
+- a non-existent path which can be created as a directory, or
+- `nothing` in which case a temporary directory is created.
+
+In all cases the path to the directory is returned. If an error occurs during
+`f(arg)`, the directory is returned to its original state: if it already existed
+but was empty, it will be emptied; if it did not exist it will be deleted.
+"""»
+«k:function» «f:arg_mkdir»(f::«t:Function», arg::«t:Union{AbstractString, Nothing}»)
+    «v:existed» = «c:false»
+    «k:if» arg === «b:nothing»
+        «v:arg» = mktempdir()
+    «k:else»
+        «v:st» = stat(arg)
+        «k:if» !ispath(st)
+            mkdir(arg)
+        «k:elseif» !isdir(st)
+            error(«s:"arg_mkdir: »«:julia-ts-string-interpolation-face:$(»«D:repr(arg)»«:julia-ts-string-interpolation-face:)»«s: not a directory"»)
+        «k:else»
+            isempty(readdir(arg)) ||
+                error(«s:"arg_mkdir: »«:julia-ts-string-interpolation-face:$(»«D:repr(arg)»«:julia-ts-string-interpolation-face:)»«s: directory not empty"»)
+            «v:existed» = «c:true»
+        «k:end»
+    «k:end»
+    «k:try» f(arg)
+    «k:catch»
+        «k:if» existed
+            «k:for» name «k:in» readdir(arg)
+                «v:path» = joinpath(arg, name)
+                prepare_for_deletion(path)
+                rm(path, «:julia-ts-quoted-symbol-face:force»=«c:true», «:julia-ts-quoted-symbol-face:recursive»=«c:true»)
+            «k:end»
+        «k:else»
+            prepare_for_deletion(arg)
+            rm(arg, «:julia-ts-quoted-symbol-face:force»=«c:true», «:julia-ts-quoted-symbol-face:recursive»=«c:true»)
+        «k:end»
+        rethrow()
+    «k:end»
+    «k:return» arg
+«k:end»
+
+«x:## test utilities ##»
+
+«k:const» «v:ARG_READERS» = [
+    String      => path -> f -> f(path)
+    Cmd         => path -> f -> f(«s:`cat »«:julia-ts-string-interpolation-face:$»«D:path»«s:`»)
+    CmdRedirect => path -> f -> f(pipeline(path, «s:`cat`»))
+    IOStream    => path -> f -> open(f, path)
+    Process     => path -> f -> open(f, «s:`cat »«:julia-ts-string-interpolation-face:$»«D:path»«s:`»)
+]
+
+«k:const» «v:ARG_WRITERS» = [
+    String      => path -> f -> f(path)
+    Cmd         => path -> f -> f(«s:`tee »«:julia-ts-string-interpolation-face:$»«D:path»«s:`»)
+    CmdRedirect => path -> f -> f(pipeline(«s:`cat`», path))
+    IOStream    => path -> f -> open(f, path, «:julia-ts-quoted-symbol-face:write»=«c:true»)
+    Process     => path -> f -> open(f, pipeline(«s:`cat`», path), «:julia-ts-quoted-symbol-face:write»=«c:true»)
+]
+
+«:julia-ts-macro-face:@assert» all(t <: ArgRead  «k:for» t «k:in» map(first, ARG_READERS))
+«:julia-ts-macro-face:@assert» all(t <: ArgWrite «k:for» t «k:in» map(first, ARG_WRITERS))
+
+«s:"""
+    arg_readers(arg :: AbstractString, [ type = ArgRead ]) do arg::Function
+        ## pre-test setup ##
+        @arg_test arg begin
+            arg :: ArgRead
+            ## test using `arg` ##
+        end
+        ## post-test cleanup ##
+    end
+
+The `arg_readers` function takes a path to be read and a single-argument do
+block, which is invoked once for each test reader type that `arg_read` can
+handle. If the optional `type` argument is given then the do block is only
+invoked for readers that produce arguments of that type.
+
+The `arg` passed to the do block is not the argument value itself, because some
+of test argument types need to be initialized and finalized for each test case.
+Consider an open file handle argument: once you've used it for one test, you
+can't use it again; you need to close it and open the file again for the next
+test. This function `arg` can be converted into an `ArgRead` instance using
+`@arg_test arg begin ... end`.
+"""»
+«k:function» «f:arg_readers»(
+    body::«t:Function»,
+    path::«t:AbstractString»,
+    type::«t:Type» = ArgRead,
+)
+    «k:for» (t, reader) «k:in» ARG_READERS
+        t <: type || «k:continue»
+        body(reader(path))
+    «k:end»
+«k:end»
+
+«s:"""
+    arg_writers([ type = ArgWrite ]) do path::String, arg::Function
+        ## pre-test setup ##
+        @arg_test arg begin
+            arg :: ArgWrite
+            ## test using `arg` ##
+        end
+        ## post-test cleanup ##
+    end
+
+The `arg_writers` function takes a do block, which is invoked once for each test
+writer type that `arg_write` can handle with a temporary (non-existent) `path`
+and `arg` which can be converted into various writable argument types which
+write to `path`. If the optional `type` argument is given then the do block is
+only invoked for writers that produce arguments of that type.
+
+The `arg` passed to the do block is not the argument value itself, because some
+of test argument types need to be initialized and finalized for each test case.
+Consider an open file handle argument: once you've used it for one test, you
+can't use it again; you need to close it and open the file again for the next
+test. This function `arg` can be converted into an `ArgWrite` instance using
+`@arg_test arg begin ... end`.
+
+There is also an `arg_writers` method that takes a path name like `arg_readers`:
+
+    arg_writers(path::AbstractString, [ type = ArgWrite ]) do arg::Function
+        ## pre-test setup ##
+        @arg_test arg begin
+            # here `arg :: ArgWrite`
+            ## test using `arg` ##
+        end
+        ## post-test cleanup ##
+    end
+
+This method is useful if you need to specify `path` instead of using path name
+generated by `tempname()`. Since `path` is passed from outside of `arg_writers`,
+the path is not an argument to the do block in this form.
+"""»
+«k:function» «f:arg_writers»(
+    body::«t:Function»,
+    type::«t:Type» = ArgWrite,
+)
+    «k:for» (t, writer) «k:in» ARG_WRITERS
+        t <: type || «k:continue»
+        «v:path» = tempname()
+        «k:try» body(path, writer(path))
+        «k:finally»
+            rm(path, «:julia-ts-quoted-symbol-face:force»=«c:true»)
+        «k:end»
+    «k:end»
+«k:end»
+
+«k:function» «f:arg_writers»(
+    body::«t:Function»,
+    path::«t:AbstractString»,
+    type::«t:Type» = ArgWrite,
+)
+    «k:for» (t, writer) «k:in» ARG_WRITERS
+        t <: type || «k:continue»
+        body(writer(path))
+    «k:end»
+«k:end»
+
+«s:"""
+    @arg_test arg1 arg2 ... body
+
+The `@arg_test` macro is used to convert `arg` functions provided by
+`arg_readers` and `arg_writers` into actual argument values. When you write
+`@arg_test arg body` it is equivalent to `arg(arg -> body)`.
+"""»
+«k:macro» «f:arg_test»(args...)
+    arg_test(args...)
+«k:end»
+
+«k:function» «f:arg_test»(var::«t:Symbol», args...)
+    «v:var» = esc(var)
+    «v:body» = arg_test(args...)
+    «:julia-ts-quoted-symbol-face::(»«:julia-ts-interpolation-expression-face:$»«D:var»«:julia-ts-quoted-symbol-face:(»«:julia-ts-interpolation-expression-face:$»«D:var»«:julia-ts-quoted-symbol-face: -> »«:julia-ts-interpolation-expression-face:$»«D:body»«:julia-ts-quoted-symbol-face:))»
+«k:end»
+
+«f:arg_test»(ex::«t:Expr») = esc(ex)
+
+«k:end» «x:# module»
