@@ -40,6 +40,11 @@
 (require 'julia-mode)
 (require 'julia-ts-misc)
 
+;; Fix grammar version to 0.23.0, which is known to be compatible with the
+;; treesitter queries defined in the present version of the mode definition.
+(add-to-list 'treesit-language-source-alist
+             '(julia "https://github.com/tree-sitter/tree-sitter-julia" "v0.23.0"))
+
 (declare-function treesit-parser-create "treesit.c")
 
 (defgroup julia-ts nil
