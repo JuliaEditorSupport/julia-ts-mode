@@ -44,6 +44,20 @@ Julia tree-sitter grammar will be automatically downloaded and compiled when a
 Julia file is opened using the major mode `julia-ts-mode`. For more information
 on how to install and configure `treesit-auto`, check the package documentation.
 
+### Installing Julia Tree-Sitter Grammar On Windows
+
+1. Install CMake, a C/C++ compiler and a linker such as those provided
+by [mingw-w64](https://www.mingw-w64.org/). In this case, you need
+    * `mingw-w64-x86_64-cmake`
+    * `mingw-w64-x86_64-gcc`
+    * `mingw-w64-x86_64-libtool`.
+2. Make sure the toolchain is on Emacs' variable `exec-path` by _e.g._
+adding `msys64/mingw64/bin` to the `PATH` or by adding this location
+to `exec-path` (inspect `exec-path` with `C-h v exec-path RET` before
+installing).
+3. After this, `treesit-auto` should automatically install the Julia
+grammar when opening a Julia file.
+
 # LSP Configuration
 
 This mode is derived from `julia-mode`. Hence, most of the feature available for
