@@ -1,0 +1,784 @@
+«x:# ==============================»
+«x:# tuple collections»
+«x:# ==============================»
+
+()
+«x:# There's no (,)»
+
+(«c:1») «x:# NOT a tuple»
+(«c:1»,)
+(«c:2»,«c:3»,«c:4»,)
+
+«x:# ==============================»
+«x:# named tuple collections»
+«x:# ==============================»
+
+(«v:a» = «c:1») «x:# NOT a tuple»
+(a = «c:1»,)
+(a = «c:1», b = «c:2»)
+(;)
+(; a)
+(; a = «c:1»)
+(; a = «c:1», b = «c:2»)
+(; a, foo.b)
+
+«x:# ==============================»
+«x:# vector array collections»
+«x:# ==============================»
+
+[]
+«x:# There's no [,]»
+[x]
+[x,]
+[«c:1», «c:2»]
+
+«x:# Check unary-and-binary-operators»
+[x.-y, «c:2»]
+
+«x:# ==============================»
+«x:# matrix array collections»
+«x:# ==============================»
+
+[x;]
+[«c:1» «c:2»]
+[«c:1» «c:2»; «c:3» «c:4»]
+[«c:1» «c:2»
+ «c:3» «c:4»]
+[«c:1»
+ «c:2»
+ «c:3»
+]
+[
+ a;
+ b;
+ c;
+]
+[«c:1»;; «c:2»;; «c:3»;;; «c:4»;; «c:5»;; «c:6»;;]
+Int[«c:1» «c:2» «c:3» «c:4»]
+
+«x:# ========================================»
+«x:# comprehension array collections»
+«x:# ========================================»
+
+[x «k:for» x «k:in» xs]
+[x
+  «k:for» x «k:in» xs
+  «k:if» x > «c:0»
+]
+UInt[b(c, e) «k:for» c «k:in» d «k:for» e «k:in» f]
+
+f(«c:1», «c:2», i «k:for» i «k:in» iter)
+(b(c, e) «k:for» c «k:in» d, e = «c:5» «k:if» e)
+
+«x:# ==============================»
+«x:# module definitions»
+«x:# ==============================»
+
+«k:module» A
+
+«k:baremodule» B «k:end»
+
+«k:module» C
+«k:end»
+
+«k:end»
+
+«x:# ==============================»
+«x:# abstract type definitions»
+«x:# ==============================»
+
+«k:abstract» «k:type» «t:T» «k:end»
+«k:abstract» «k:type» «t:T» <: «t:S» «k:end»
+«k:abstract» «k:type» «t:T»{«t:S»} <: «t:U» «k:end»
+
+«x:# ==============================»
+«x:# primitive type definitions»
+«x:# ==============================»
+
+«k:primitive» «k:type» «t:T» «c:8» «k:end»
+«k:primitive» «k:type» «t:T» <: «t:S» «c:16» «k:end»
+«k:primitive» «k:type» «t:Ptr»{«t:T»} «c:32» «k:end»
+
+«x:# ==============================»
+«x:# struct definitions»
+«x:# ==============================»
+
+«k:struct» «t:Unit» «k:end»
+
+«k:struct» «t:MyInt» field::«t:Int» «k:end»
+
+«k:mutable» «k:struct» «t:Foo»
+  bar
+  baz::«t:Float64»
+«k:end»
+
+«x:# ==============================»
+«x:# parametric struct definitions»
+«x:# ==============================»
+
+«k:struct» «t:Point»{«t:T»}
+  x::«t:T»
+  y::«t:T»
+«k:end»
+
+«k:struct» «t:Rational»{«t:T»<:«t:Integer»} <: «t:Real»
+  num::«t:T»
+  den::«t:T»
+«k:end»
+
+«k:mutable» «k:struct» «t:MyVec» <: «t:AbstractArray»
+  foos::«t:Vector»{«t:Foo»}
+«k:end»
+
+«x:# ==============================»
+«x:# function definitions»
+«x:# ==============================»
+
+«k:function» «f:f» «k:end»
+
+«k:function» «f:nop»() «k:end»
+
+«k:function» «f:I»(x) x «k:end»
+
+«k:function» Base.«f:rand»(n::«t:MyInt»)
+    «k:return» «c:4»
+«k:end»
+
+«k:function» «f:Γ»(z)
+    gamma(z)
+«k:end»
+
+«k:function» «f:⊕»(x, y)
+    x + y
+«k:end»
+
+«k:function» «f:fix2»(f, x)
+    «k:return» «k:function»(y)
+        f(x, y)
+    «k:end»
+«k:end»
+
+«k:function» (foo::«t:Foo»)()
+«k:end»
+
+«x:# ==============================»
+«x:# short function definitions»
+«x:# ==============================»
+
+«f:s»(n) = n + «c:1»
+
+Base.«f:foo»(x) = x
+
+«f:ι»(n) = range(«c:1», n)
+
+«f:⊗»(x, y) = x * y
+
+(+)(x, y) = x + y
+
+«x:# ==============================»
+«x:# function definition parameters»
+«x:# ==============================»
+
+«k:function» «f:f»(x, y::«t:Int», «:julia-ts-quoted-symbol-face:z»=«c:1», ws...) «k:end»
+
+«k:function» (::«t:Type{Int}», x::«t:Int» = «c:1», y::«t:Int»...) «k:end»
+
+«k:function» «f:apply»(f, args...; kwargs...)
+«k:end»
+
+«k:function» «f:g»(; x, y::«t:Int», «:julia-ts-quoted-symbol-face:z» = «c:1», kwargs...) «b:nothing» «k:end»
+
+«x:# ==================================================»
+«x:# function definition return types»
+«x:# ==================================================»
+
+«k:function» «f:s»(n)::«t:MyInt»
+    MyInt(n + «c:1»)
+«k:end»
+
+«k:function» «f:bar»(f, xs::Foo.«t:Bar»)::Foo.«t:Bar»
+    map(f, xs)
+«k:end»
+
+«x:# ==================================================»
+«x:# function definition tuple parameters»
+«x:# ==================================================»
+
+«k:function» «f:swap»((x, y))
+    (y, x)
+«k:end»
+
+«k:function» «f:f»((x, y)=(«c:1»,«c:2»))
+    (x, y)
+«k:end»
+
+«k:function» «f:car»((x, y)::«t:Tuple»{«t:T», «t:T»}) «k:where» «t:T»
+    x
+«k:end»
+
+«x:# ==================================================»
+«x:# type parametric function definition parameters»
+«x:# ==================================================»
+
+«k:function» «f:f»(x::«t:T») «k:where» «t:T»
+«k:end»
+
+«k:function» «f:f»(n::«t:N») «k:where» {«t:N» <: «t:Integer»}
+    n
+«k:end»
+
+f(n::«t:N», m::«t:M») «k:where» {«t:N» <: «t:Number»} «k:where» {«t:M» <: «t:Integer»} = n^m
+
+«t:Foo»{«t:T»}(x::«t:T») «k:where» {«t:T»} = x
+
+«k:function» «f:norm»(p::«t:Point»{«t:T»} «k:where» T<:Real)
+    norm2(p)
+«k:end»
+
+Base.«f:show»(io::«t:IO», ::«t:MIME"text/plain"», m::«t:Method»; kwargs...) = show_method(io, m, kwargs)
+
+«x:# ==============================»
+«x:# macro definitions»
+«x:# ==============================»
+
+«k:macro» «f:name»(s::«t:Symbol»)
+    String(s)
+«k:end»
+
+«k:macro» «f:count»(args...) length(args) «k:end»
+
+«x:# ==============================»
+«x:# identifiers»
+«x:# ==============================»
+
+abc_123_ABC
+_fn!
+ρ; φ; z
+ℝ
+x′
+θ̄
+logŷ
+ϵ
+ŷ
+🙋
+🦀
+
+«x:# ==============================»
+«x:# field expressions»
+«x:# ==============================»
+
+foo.x
+bar.x.y.z
+
+(a[«c:1»].b().c).d
+
+Base.«:julia-ts-quoted-symbol-face::+»
+
+df.«s:"a"»
+
+«x:# ==============================»
+«x:# index expressions»
+«x:# ==============================»
+
+a[«c:1», «c:2», «c:3»]
+a[«c:1», :]
+«s:"foo"»[«c:1»]
+
+«x:# ==============================»
+«x:# type parametrized expressions»
+«x:# ==============================»
+
+«t:Vector»{«t:Int»}
+«t:Vector»{<:«t:Number»}
+«:julia-ts-interpolation-expression-face:$(»«D:usertype»«:julia-ts-interpolation-expression-face:)»{«t:T»}
+
+{«:julia-ts-quoted-symbol-face::x»} ~ normal(«c:0», «c:1»)
+
+«x:# ==============================»
+«x:# function call expressions»
+«x:# ==============================»
+
+f()
+g(«s:"hi"», «c:2»)
+h(d...)
+
+f(e; «:julia-ts-quoted-symbol-face:f» = g)
+g(arg; kwarg)
+
+«k:new»{typeof(xs)}(xs)
+
+«x:# ========================================»
+«x:# function call expressions with do blocks»
+«x:# ========================================»
+
+reduce(xs) «k:do» x, y
+  f(x, y)
+«k:end»
+
+«x:# ==============================»
+«x:# macro call expressions»
+«x:# ==============================»
+
+«:julia-ts-macro-face:@assert» x == y «s:"a message"»
+
+«:julia-ts-macro-face:@testset» «s:"a"» «k:begin»
+  «v:b» = c
+«k:end»
+
+«:julia-ts-macro-face:@.» a * x + b
+
+joinpath(«:julia-ts-macro-face:@__DIR__», «s:"grammar.js"»)
+
+«:julia-ts-macro-face:@macroexpand» «:julia-ts-macro-face:@async» accept(socket)
+
+«:julia-ts-macro-face:@Meta.dump» «c:1», «c:2»
+Meta.«:julia-ts-macro-face:@dump» «v:x» = «c:1»
+
+«x:# ==============================»
+«x:# closed macro call expressions»
+«x:# ==============================»
+
+«:julia-ts-macro-face:@enum»(Light, red, yellow, green)
+«f:f»(«:julia-ts-macro-face:@nospecialize»(x)) = x
+
+«:julia-ts-macro-face:@m»[«c:1», «c:2»] + «c:1»
+«:julia-ts-macro-face:@m» [«c:1», «c:2»] + «c:1»
+
+«x:# ==============================»
+«x:# quote expressions»
+«x:# ==============================»
+
+«:julia-ts-quoted-symbol-face::foo»
+«:julia-ts-quoted-symbol-face::const»
+
+«:julia-ts-quoted-symbol-face::(x; y)»
+«:julia-ts-quoted-symbol-face::(x, y)»
+«:julia-ts-quoted-symbol-face::[x, y, z]»
+
+«:julia-ts-quoted-symbol-face::+»
+«:julia-ts-quoted-symbol-face::->»
+«:julia-ts-quoted-symbol-face::(::)»
+
+«x:# ==============================»
+«x:# interpolation expressions»
+«x:# ==============================»
+
+«:julia-ts-interpolation-expression-face:$»«D:foo»
+«:julia-ts-interpolation-expression-face:$»«D:obj».field
+«:julia-ts-interpolation-expression-face:$(»«D:obj.field»«:julia-ts-interpolation-expression-face:)»
+«:julia-ts-interpolation-expression-face:$»«D:f»(x)
+«:julia-ts-interpolation-expression-face:$»«D:f»[«c:1», «c:2»]
+$«s:"foo"»
+
+«k:using» «:julia-ts-interpolation-expression-face:$»«D:Package»: «:julia-ts-interpolation-expression-face:$(»«D:name»«:julia-ts-interpolation-expression-face:)»
+
+«x:# Similar definitions in Gadfly/src/varset.jl»
+«k:mutable» «k:struct» «:julia-ts-interpolation-expression-face:$(»«D:name»«:julia-ts-interpolation-expression-face:)»
+  «:julia-ts-interpolation-expression-face:$(»«D:vars...»«:julia-ts-interpolation-expression-face:)»
+«k:end»
+«k:function» «:julia-ts-interpolation-expression-face:$(»«D:name»«:julia-ts-interpolation-expression-face:)»(«:julia-ts-interpolation-expression-face:$(»«D:parameters_expr»«:julia-ts-interpolation-expression-face:)»)
+    «:julia-ts-interpolation-expression-face:$(»«D:name»«:julia-ts-interpolation-expression-face:)»(«:julia-ts-interpolation-expression-face:$(»«D:parsed_vars...»«:julia-ts-interpolation-expression-face:)»)
+«k:end»
+
+«x:# ==============================»
+«x:# adjoint expressions»
+«x:# ==============================»
+
+[u, v]'
+A'[i]
+(x, y)'
+f'(x)
+«:julia-ts-quoted-symbol-face::a»'
+
+«x:# ==============================»
+«x:# juxtaposition expressions»
+«x:# ==============================»
+
+«c:1»x
+«c:2»v[i]
+«c:3»f(x)
+«c:4»df.a
+«c:5»«s:u"kg"»
+x'x
+«c:2»x^«c:2» - «c:.3»x
+«c:2»(x-«c:1»)^«c:2» - «c:3»(x-«c:1»)
+
+«x:# =============================»
+«x:# arrow function expressions»
+«x:# =============================»
+
+x -> x^«c:2»
+(x,y,z)-> «c:2»*x + y - z
+()->«c:3»
+() -> (sleep(«c:0.1»); i += «c:1»; l)
+a -> «v:a» = «c:2», «c:3»
+
+«x:# ==============================»
+«x:# boolean literals»
+«x:# ==============================»
+
+«c:true»
+«c:false»
+
+«x:# ==============================»
+«x:# integer number literals»
+«x:# ==============================»
+
+«c:0b01»
+«c:0o01234567»
+«c:0123456789»
+«c:123_456_789»
+«c:0x0123456789_abcdef_ABCDEF»
+
+«x:# ==============================»
+«x:# float number literals»
+«x:# ==============================»
+
+«c:0123456789.»
+«c:.0123456789»
+«c:0123456789.0123456789»
+
+«c:9e10»
+«c:9E-1»
+«c:9f10»
+«c:9f-1»
+
+«c:.1e10»
+«c:1.1e10»
+«c:1.e10»
+
+«c:0x0123456789_abcdef.ABCDEFp0»
+«c:0x0123456789_abcdef_ABCDEF.p-1»
+«c:0x.0123456789_abcdef_ABCDEFp1»
+
+«x:# ==============================»
+«x:# character literals»
+«x:# ==============================»
+
+«c:' '»
+«c:'o'»
+«c:'\t'»
+«c:'\uffff'»
+«c:'\U10ffff'»
+
+«x:# ==============================»
+«x:# string literals»
+«x:# ==============================»
+
+«s:""»
+«s:"\""»
+«s:"foo
+ bar"»
+«s:"this is a \"string\"."»
+«s:"""this is also a "string"."""»
+«v:band» = «s:"Interpol"»
+«s:"»«:julia-ts-string-interpolation-face:$»«D:band»«s: is a cool band"»
+«s:"»«:julia-ts-string-interpolation-face:$(»«c:2»«D:π»«:julia-ts-string-interpolation-face:)»«s: is a cool number"»
+«s:"cells interlinked within »«:julia-ts-string-interpolation-face:$(»«D:"cells interlinked whithin »«:julia-ts-string-interpolation-face:$(»«D:"cells interlinked whithin one stem"»«:julia-ts-string-interpolation-face:)»«D:"»«:julia-ts-string-interpolation-face:)»«s:"»
+
+«x:# ==============================»
+«x:# command string literals»
+«x:# ==============================»
+
+«s:`pwd`»
+«s:m`pwd`»
+«s:`cd »«:julia-ts-string-interpolation-face:$»«D:dir»«s:`»
+«s:`echo \`cmd\``»
+«s:```
+echo "\033[31mred\033[m"
+```»
+
+«x:# ==============================»
+«x:# non-standard string literals»
+«x:# ==============================»
+
+«x:# FIXME: \s shouldn't be an escape_sequence here»
+«v:trailing_ws» = «s:r"\s+$"»
+«v:version» = «s:v"1.0"»
+«s:K"\\"»
+
+«x:# ==============================»
+«x:# comments»
+«x:# ==============================»
+
+«x:# comment»
+«x:#= comment =#»
+«x:#=
+comment
+=#»
+«v:x» = «x:#= comment =#» «c:1»
+
+«x:#=
+nested #= comments =# =#»
+«x:#==#»
+
+«x:# ==============================»
+«x:# assignment operators»
+«x:# ==============================»
+
+«v:a» = b
+a .. b = a * b
+«v:tup» = «c:1», «c:2», «c:3»
+«v:car», cdr... = list
+c &= d ÷= e
+
+«x:# ==============================»
+«x:# binary arithmetic operators»
+«x:# ==============================»
+
+a + b
+a ++ «c:1» × b ⥌ «c:2» → c
+a // b
+«v:x» = A \ (v × w)
+
+«x:# ==============================»
+«x:# other binary operators»
+«x:# ==============================»
+
+a & b | c
+(x >>> «c:16», x >>> «c:8», x) .& «c:0xff»
+
+Dict(b => c, d => e)
+
+x |>
+  f |>
+  g
+
+«c:1»..«c:10»
+(«c:1»:«c:10»...,)
+
+«x:# ==============================»
+«x:# binary comparison operators»
+«x:# ==============================»
+
+a === «c:1»
+a! != «c:0»
+
+A ⊆ B ⊆ C
+x ≥ «c:0» ≥ z
+
+«x:# ==============================»
+«x:# unary operators»
+«x:# ==============================»
+
+-A'
++a
+-b
+√«c:9»
+!p === !(p)
+«c:1» ++ +«c:2»
+
+«x:# =============================»
+«x:# operator broadcasting»
+«x:# =============================»
+
+a .* b .+ c
+.~[x]
+
+«x:# ==============================»
+«x:# ternary operator»
+«x:# ==============================»
+
+«v:x» = batch_size == «c:1» ?
+  rand(«c:10») :
+  rand(«c:10», batch_size)
+
+«x:# ==============================»
+«x:# operators as values»
+«x:# ==============================»
+
+«v:x» = +
+⪯ = .≤
+print(:)
+foo(^, ÷, -)
+
+«x:# ==============================»
+«x:# compound statements»
+«x:# ==============================»
+
+«k:begin»
+«k:end»
+
+«k:begin»
+    foo
+    bar
+    baz
+«k:end»
+
+«x:# ==============================»
+«x:# quote statements»
+«x:# ==============================»
+
+«k:quote» «k:end»
+
+«k:quote»
+  «v:x» = «c:1»
+  «v:y» = «c:2»
+  x + y
+«k:end»
+
+«x:# ==============================»
+«x:# let statements»
+«x:# ==============================»
+
+«k:let»
+«k:end»
+
+«k:let» «v:var1» = value1, «v:var2», «v:var3» = value3
+    code
+«k:end»
+
+«x:# ==============================»
+«x:# if statements»
+«x:# ==============================»
+
+«k:if» a
+«k:elseif» b
+«k:else»
+«k:end»
+
+«k:if» «c:true» «c:1» «k:else» «c:0» «k:end»
+
+«k:if» a
+  b()
+«k:elseif» c
+  d()
+  d()
+«k:else»
+  e()
+«k:end»
+
+«x:# ==============================»
+«x:# try statements»
+«x:# ==============================»
+
+«k:try» «k:catch» «k:end»
+«k:try» «k:finally» «k:end»
+
+«k:try»
+    sqrt(x)
+«k:catch»
+    sqrt(complex(x, «c:0»))
+«k:end»
+
+«k:try»
+    operate_on_file(f)
+«k:finally»
+    close(f)
+«k:end»
+
+«k:try»
+    «x:# fallible»
+«k:catch»
+    «x:# handle errors»
+«k:else»
+    «x:# do something if there were no exceptions»
+«k:end»
+
+«x:# ==============================»
+«x:# for statements»
+«x:# ==============================»
+
+«k:for» x «k:in» xs «k:end»
+
+«k:for» x «k:in» xs foo!(x) «k:end»
+
+«k:for» i «k:in» [«c:1», «c:2», «c:3»]
+  print(i)
+«k:end»
+
+«k:for» (a, b) «k:in» c
+  print(a, b)
+«k:end»
+
+«x:# ==============================»
+«x:# for outer statements»
+«x:# ==============================»
+
+«v:n» = «c:1»
+«k:for» «k:outer» n «k:in» range
+  body
+«k:end»
+
+«k:for» «k:outer» x = iter1, «k:outer» y = iter2
+  body
+«k:end»
+
+«x:# ==============================»
+«x:# while statements»
+«x:# ==============================»
+
+«k:while» «c:true» «k:end»
+
+«k:while» i < «c:5»
+  print(i)
+  «k:continue»
+  «k:break»
+«k:end»
+
+«k:while» a(); b(); «k:end»
+
+«x:# ==============================»
+«x:# return statements»
+«x:# ==============================»
+
+«k:return»
+«k:return» a
+«k:return» a || b
+«k:return» a, b, c
+
+«x:# ==============================»
+«x:# export statements»
+«x:# ==============================»
+
+«k:export» a
+«k:export» a, b, +, (*)
+«k:export» «:julia-ts-macro-face:@macroMcAtface»
+«k:public» a
+«k:public» a, b, +, (*)
+«k:public» «:julia-ts-macro-face:@macroMcAtface»
+
+«x:# ==============================»
+«x:# import statements»
+«x:# ==============================»
+
+«k:import» Pkg
+
+«k:using» Sockets
+
+«k:using» ..Foo, ..Bar
+
+«k:import» CSV, Chain, DataFrames
+
+«k:import» Base: show, «:julia-ts-macro-face:@kwdef», +, (*)
+
+«k:import» LinearAlgebra as la
+
+«k:import» Base: «:julia-ts-macro-face:@view» as «:julia-ts-macro-face:@v»
+
+«x:# ===============================»
+«x:# const statements»
+«x:# ===============================»
+
+«k:const» «v:x» = «c:5»
+«k:const» «v:y», «v:z» = «c:1», «c:2»
+
+(«c:0», «k:const» «v:x», «v:y» = «c:1», «c:2»)
+
+«x:# ===============================»
+«x:# local statements»
+«x:# ===============================»
+
+«k:local» «v:x»
+«k:local» «v:y», «v:z» = «c:1», «c:2»
+«k:local» «f:foo»() = «c:3»
+«k:local» «k:function» «f:bar»() «c:4» «k:end»
+
+«x:# ===============================»
+«x:# global statements»
+«x:# ===============================»
+
+«k:global» «v:X»
+«k:global» «v:Y», «v:Z» = «c:11», «c:42»
+«k:global» «f:foo»() = «c:3»
+«k:global» «k:function» «f:bar»() «c:4» «k:end»

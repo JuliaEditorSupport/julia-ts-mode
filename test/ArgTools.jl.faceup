@@ -45,7 +45,7 @@ This restriction may be relaxed in the future, which would not break any working
 The `ArgRead` types is a union of the types that the `arg_read` function knows
 how to convert into readable IO handles. See [`arg_read`](@ref) for details.
 """»
-«k:const» «v:ArgRead» = Union{AbstractString, AbstractCmd, IO}
+«k:const» «v:ArgRead» = «t:Union»{«t:AbstractString», «t:AbstractCmd», «t:IO»}
 
 «s:"""
     ArgWrite = Union{AbstractString, AbstractCmd, IO}
@@ -54,7 +54,7 @@ The `ArgWrite` types is a union of the types that the `arg_write` function knows
 how to convert into writeable IO handles, except for `Nothing` which `arg_write`
 handles by generating a temporary file. See [`arg_write`](@ref) for details.
 """»
-«k:const» «v:ArgWrite» = Union{AbstractString, AbstractCmd, IO}
+«k:const» «v:ArgWrite» = «t:Union»{«t:AbstractString», «t:AbstractCmd», «t:IO»}
 
 «s:"""
     arg_read(f::Function, arg::ArgRead) -> f(arg_io)
@@ -166,7 +166,7 @@ In all cases the path to the directory is returned. If an error occurs during
 `f(arg)`, the directory is returned to its original state: if it already existed
 but was empty, it will be emptied; if it did not exist it will be deleted.
 """»
-«k:function» «f:arg_mkdir»(f::«t:Function», arg::«t:Union{AbstractString, Nothing}»)
+«k:function» «f:arg_mkdir»(f::«t:Function», arg::«t:Union»{«t:AbstractString», «t:Nothing»})
     «v:existed» = «c:false»
     «k:if» arg === «b:nothing»
         «v:arg» = mktempdir()

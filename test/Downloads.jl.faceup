@@ -38,10 +38,10 @@ resources are not cleaned up until `Downloader` is garbage collected.
 """»
 «k:mutable» «k:struct» «t:Downloader»
     multi::«t:Multi»
-    ca_roots::«t:Union{String, Nothing}»
-    easy_hook::«t:Union{Function, Nothing}»
+    ca_roots::«t:Union»{«t:String», «t:Nothing»}
+    easy_hook::«t:Union»{«t:Function», «t:Nothing»}
 
-    «f:Downloader»(multi::«t:Multi») = new(multi, get_ca_roots(), EASY_HOOK[])
+    «f:Downloader»(multi::«t:Multi») = «k:new»(multi, get_ca_roots(), EASY_HOOK[])
 «k:end»
 «f:Downloader»(; grace::«t:Real»=«c:30») = Downloader(Multi(grace_ms(grace)))
 
@@ -63,7 +63,7 @@ resources are not cleaned up until `Downloader` is garbage collected.
 «k:end»
 
 «k:const» «v:DOWNLOAD_LOCK» = ReentrantLock()
-«k:const» «v:DOWNLOADER» = Ref{Union{Downloader, Nothing}}(«b:nothing»)
+«k:const» «v:DOWNLOADER» = «t:Ref»{«t:Union»{«t:Downloader», «t:Nothing»}}(«b:nothing»)
 
 «s:"""
 `EASY_HOOK` is a modifable global hook to used as the default `easy_hook` on
@@ -73,7 +73,7 @@ new `Downloader` objects. This supplies a mechanism to set options for the
 It is expected to be function taking two arguments: an `Easy` struct and an
 `info` NamedTuple with names `url`, `method` and `headers`.
 """»
-«k:const» «v:EASY_HOOK» = Ref{Union{Function, Nothing}}(«b:nothing»)
+«k:const» «v:EASY_HOOK» = «t:Ref»{«t:Union»{«t:Function», «t:Nothing»}}(«b:nothing»)
 
 «s:"""
     struct Response
@@ -100,11 +100,11 @@ not support headers, the headers vector will be empty. HTTP/2 does not include a
 status message, only a status code, so the message will be empty.
 """»
 «k:struct» «t:Response»
-    proto   :: «t:Union{String, Nothing}»
+    proto   :: «t:Union»{«t:String», «t:Nothing»}
     url     :: «t:String» «x:# redirected URL»
     status  :: «t:Int»
     message :: «t:String»
-    headers :: «t:Vector{Pair{String,String}}»
+    headers :: «t:Vector»{«t:Pair»{«t:String»,«t:String»}}
 «k:end»
 
 Curl.«f:status_ok»(response::«t:Response») = status_ok(response.proto, response.status)
@@ -246,14 +246,14 @@ Downloads.download("https://httpbingo.julialang.org/delay/30"; downloader)
 """»
 «k:function» «f:download»(
     url        :: «t:AbstractString»,
-    output     :: «t:Union{ArgWrite, Nothing}» = «b:nothing»;
-    method     :: «t:Union{AbstractString, Nothing}» = «b:nothing»,
-    headers    :: «t:Union{AbstractVector, AbstractDict}» = Pair{String,String}[],
+    output     :: «t:Union»{«t:ArgWrite», «t:Nothing»} = «b:nothing»;
+    method     :: «t:Union»{«t:AbstractString», «t:Nothing»} = «b:nothing»,
+    headers    :: «t:Union»{«t:AbstractVector», «t:AbstractDict»} = «t:Pair»{«t:String»,«t:String»}[],
     timeout    :: «t:Real» = «b:Inf»,
-    progress   :: «t:Union{Function, Nothing}» = «b:nothing»,
+    progress   :: «t:Union»{«t:Function», «t:Nothing»} = «b:nothing»,
     verbose    :: «t:Bool» = «c:false»,
-    debug      :: «t:Union{Function, Nothing}» = «b:nothing»,
-    downloader :: «t:Union{Downloader, Nothing}» = «b:nothing»,
+    debug      :: «t:Union»{«t:Function», «t:Nothing»} = «b:nothing»,
+    downloader :: «t:Union»{«t:Downloader», «t:Nothing»} = «b:nothing»,
 ) :: «t:ArgWrite»
     arg_write(output) «k:do» output
         «v:response» = request(
@@ -327,18 +327,18 @@ running request, for example if the user wants to cancel a download.
 """»
 «k:function» «f:request»(
     url        :: «t:AbstractString»;
-    input      :: «t:Union{ArgRead, Nothing}» = «b:nothing»,
-    output     :: «t:Union{ArgWrite, Nothing}» = «b:nothing»,
-    method     :: «t:Union{AbstractString, Nothing}» = «b:nothing»,
-    headers    :: «t:Union{AbstractVector, AbstractDict}» = Pair{String,String}[],
+    input      :: «t:Union»{«t:ArgRead», «t:Nothing»} = «b:nothing»,
+    output     :: «t:Union»{«t:ArgWrite», «t:Nothing»} = «b:nothing»,
+    method     :: «t:Union»{«t:AbstractString», «t:Nothing»} = «b:nothing»,
+    headers    :: «t:Union»{«t:AbstractVector», «t:AbstractDict»} = «t:Pair»{«t:String»,«t:String»}[],
     timeout    :: «t:Real» = «b:Inf»,
-    progress   :: «t:Union{Function, Nothing}» = «b:nothing»,
+    progress   :: «t:Union»{«t:Function», «t:Nothing»} = «b:nothing»,
     verbose    :: «t:Bool» = «c:false»,
-    debug      :: «t:Union{Function, Nothing}» = «b:nothing»,
+    debug      :: «t:Union»{«t:Function», «t:Nothing»} = «b:nothing»,
     throw      :: «t:Bool» = «c:true»,
-    downloader :: «t:Union{Downloader, Nothing}» = «b:nothing»,
-    interrupt  :: «t:Union{Nothing, Base.Event}» = «b:nothing»,
-) :: «t:Union{Response, RequestError}»
+    downloader :: «t:Union»{«t:Downloader», «t:Nothing»} = «b:nothing»,
+    interrupt  :: «t:Union»{«t:Nothing», Base.Event} = «b:nothing»,
+) :: «t:Union»{«t:Response», «t:RequestError»}
     «k:if» downloader === «b:nothing»
         lock(DOWNLOAD_LOCK) «k:do»
             «v:downloader» = DOWNLOADER[]
@@ -396,7 +396,7 @@ running request, for example if the user wants to cancel a download.
 
                 «x:# do the request»
                 add_handle(downloader.multi, easy)
-                «v:interrupted» = Threads.Atomic{Bool}(«c:false»)
+                «v:interrupted» = Threads.Atomic{«t:Bool»}(«c:false»)
                 «k:if» interrupt !== «b:nothing»
                     «v:interrupt_task» = «:julia-ts-macro-face:@async» «k:begin»
                         «x:# wait for the interrupt event»
@@ -459,8 +459,8 @@ running request, for example if the user wants to cancel a download.
 «x:## helper functions ##»
 
 «k:function» «f:p_func»(progress::«t:Function», input::«t:ArgRead», output::«t:ArgWrite»)
-    hasmethod(progress, NTuple{«c:4»,Int}) && «k:return» progress
-    hasmethod(progress, NTuple{«c:2»,Int}) ||
+    hasmethod(progress, «t:NTuple»{«c:4»,«t:Int»}) && «k:return» progress
+    hasmethod(progress, «t:NTuple»{«c:2»,«t:Int»}) ||
         throw(ArgumentError(«s:"invalid progress callback"»))
 
     input === devnull && output !== devnull &&
@@ -474,11 +474,11 @@ running request, for example if the user wants to cancel a download.
 «f:p_func»(progress::«t:Nothing», input::«t:ArgRead», output::«t:ArgWrite») = «b:nothing»
 
 «f:arg_read_size»(path::«t:AbstractString») = filesize(path)
-«f:arg_read_size»(io::«t:Base.GenericIOBuffer») = bytesavailable(io)
+«f:arg_read_size»(io::Base.«t:GenericIOBuffer») = bytesavailable(io)
 «f:arg_read_size»(::«t:Base.DevNull») = «c:0»
 «f:arg_read_size»(::«t:Any») = «b:nothing»
 
-«k:function» «f:content_length»(headers::«t:Union{AbstractVector, AbstractDict}»)
+«k:function» «f:content_length»(headers::«t:Union»{«t:AbstractVector», «t:AbstractDict»})
     «k:for» (key, value) «k:in» headers
         «k:if» lowercase(key) == «s:"content-length"» && isa(value, AbstractString)
             «k:return» tryparse(Int, value)
@@ -497,7 +497,7 @@ running request, for example if the user wants to cancel a download.
 Set the default `Downloader`. If no argument is provided, resets the default downloader so that a fresh one is created the next time the default downloader is needed.
 """»
 «k:function» «f:default_downloader!»(
-    downloader :: «t:Union{Downloader, Nothing}» = «b:nothing»
+    downloader :: «t:Union»{«t:Downloader», «t:Nothing»} = «b:nothing»
 )
     lock(DOWNLOAD_LOCK) «k:do»
         DOWNLOADER[] = downloader
@@ -510,8 +510,8 @@ Set the default `Downloader`. If no argument is provided, resets the default dow
     «v:d» = Downloader()
     «v:f» = mktemp()[«c:1»]
     download(«s:"file://"» * f; «:julia-ts-quoted-symbol-face:downloader»=d)
-    precompile(Tuple{typeof(Downloads.download), String, String})
-    precompile(Tuple{typeof(Downloads.Curl.status_2xx_ok), Int64})
+    precompile(«t:Tuple»{typeof(Downloads.download), «t:String», «t:String»})
+    precompile(«t:Tuple»{typeof(Downloads.Curl.status_2xx_ok), «t:Int64»})
 «k:end»
 
 «k:end» «x:# module»
