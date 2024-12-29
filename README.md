@@ -44,6 +44,19 @@ Julia tree-sitter grammar will be automatically downloaded and compiled when a
 Julia file is opened using the major mode `julia-ts-mode`. For more information
 on how to install and configure `treesit-auto`, check the package documentation.
 
+### Upgrading grammar after a package update
+
+Note that the [tree-sitter grammar for
+Julia](https://github.com/tree-sitter/tree-sitter-julia) is under active
+development, and breaking changes are often introduced between versions. To
+provide maximum compatibility, the exact version of the grammar library is fixed
+in `julia-ts-mode.el`, with planned regular updates to both the grammar version
+and the tree-sitter queries built on top of it. However, the grammar library
+itself isn't updated automatically by Emacs. If, after a `julia-ts-mode` package
+update, you get some quirky tree-sitter error messages, and font-locking fails
+to work in a `julia-ts-mode` buffer, run `M-x treesit-install-language-grammar
+RET julia RET` to upgrade the grammar library. This should resolve the issues.
+
 # LSP Configuration
 
 This mode is derived from `julia-mode`. Hence, most of the feature available for
