@@ -153,7 +153,8 @@ Otherwise, the indentation is:
         value: (identifier) "." (identifier) @font-lock-variable-name-face)))
      (local_statement (identifier) @font-lock-variable-name-face)
      (let_statement :anchor (identifier) @font-lock-variable-name-face)
-     (let_statement "," :anchor (identifier) @font-lock-variable-name-face)
+     ((let_statement _ @comma :anchor (identifier) @font-lock-variable-name-face)
+      (:equal "," @comma))
      (let_binding :anchor (identifier) @font-lock-variable-name-face)
      (global_statement (identifier) @font-lock-variable-name-face))
 
