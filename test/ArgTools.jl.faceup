@@ -32,7 +32,7 @@ This restriction may be relaxed in the future, which would not break any working
 """»
 
 «k:if» VERSION ≥ «s:v"1.5"»
-    «f:open_nolock»(args...; kws...) = open(args...; kws..., «:julia-ts-quoted-symbol-face:lock»=«c:false»)
+    «f:open_nolock»(args...; kws...) = open(args...; kws..., «:julia-ts-keyword-argument-face:lock»=«c:false»)
 «k:else»
     «f:open_nolock»(args...; kws...) = open(args...; kws...)
 «k:end»
@@ -100,30 +100,30 @@ temporary path generated when `arg` is `nothing`.
 »«:julia-ts-string-interpolation-face:$(»«D:nolock_docstring»«:julia-ts-string-interpolation-face:)»«s:
 """»
 «k:function» «f:arg_write»(f::«t:Function», arg::«t:AbstractString»)
-    «k:try» open_nolock(f, arg, «:julia-ts-quoted-symbol-face:write»=«c:true»)
+    «k:try» open_nolock(f, arg, «:julia-ts-keyword-argument-face:write»=«c:true»)
     «k:catch»
-        rm(arg, «:julia-ts-quoted-symbol-face:force»=«c:true»)
+        rm(arg, «:julia-ts-keyword-argument-face:force»=«c:true»)
         rethrow()
     «k:end»
     «k:return» arg
 «k:end»
 
 «k:function» «f:arg_write»(f::«t:Function», arg::«t:AbstractCmd»)
-    open(f, arg, «:julia-ts-quoted-symbol-face:write»=«c:true»)
+    open(f, arg, «:julia-ts-keyword-argument-face:write»=«c:true»)
     «k:return» arg
 «k:end»
 
 «k:function» «f:arg_write»(f::«t:Function», arg::«t:Nothing»)
     «:julia-ts-macro-face:@static» «k:if» VERSION ≥ «s:v"1.5"»
         «v:file» = tempname()
-        «v:io» = open_nolock(file, «:julia-ts-quoted-symbol-face:write»=«c:true»)
+        «v:io» = open_nolock(file, «:julia-ts-keyword-argument-face:write»=«c:true»)
     «k:else»
         «v:file», «v:io» = mktemp()
     «k:end»
     «k:try» f(io)
     «k:catch»
         close(io)
-        rm(file, «:julia-ts-quoted-symbol-face:force»=«c:true»)
+        rm(file, «:julia-ts-keyword-argument-face:force»=«c:true»)
         rethrow()
     «k:end»
     close(io)
@@ -168,7 +168,7 @@ but was empty, it will be emptied; if it did not exist it will be deleted.
 """»
 «k:function» «f:arg_mkdir»(f::«t:Function», arg::«t:Union»{«t:AbstractString», «t:Nothing»})
     «v:existed» = «c:false»
-    «k:if» arg === «b:nothing»
+    «k:if» arg === «c:nothing»
         «v:arg» = mktempdir()
     «k:else»
         «v:st» = stat(arg)
@@ -188,11 +188,11 @@ but was empty, it will be emptied; if it did not exist it will be deleted.
             «k:for» name «k:in» readdir(arg)
                 «v:path» = joinpath(arg, name)
                 prepare_for_deletion(path)
-                rm(path, «:julia-ts-quoted-symbol-face:force»=«c:true», «:julia-ts-quoted-symbol-face:recursive»=«c:true»)
+                rm(path, «:julia-ts-keyword-argument-face:force»=«c:true», «:julia-ts-keyword-argument-face:recursive»=«c:true»)
             «k:end»
         «k:else»
             prepare_for_deletion(arg)
-            rm(arg, «:julia-ts-quoted-symbol-face:force»=«c:true», «:julia-ts-quoted-symbol-face:recursive»=«c:true»)
+            rm(arg, «:julia-ts-keyword-argument-face:force»=«c:true», «:julia-ts-keyword-argument-face:recursive»=«c:true»)
         «k:end»
         rethrow()
     «k:end»
@@ -213,8 +213,8 @@ but was empty, it will be emptied; if it did not exist it will be deleted.
     String      => path -> f -> f(path)
     Cmd         => path -> f -> f(«s:`tee »«:julia-ts-string-interpolation-face:$»«D:path»«s:`»)
     CmdRedirect => path -> f -> f(pipeline(«s:`cat`», path))
-    IOStream    => path -> f -> open(f, path, «:julia-ts-quoted-symbol-face:write»=«c:true»)
-    Process     => path -> f -> open(f, pipeline(«s:`cat`», path), «:julia-ts-quoted-symbol-face:write»=«c:true»)
+    IOStream    => path -> f -> open(f, path, «:julia-ts-keyword-argument-face:write»=«c:true»)
+    Process     => path -> f -> open(f, pipeline(«s:`cat`», path), «:julia-ts-keyword-argument-face:write»=«c:true»)
 ]
 
 «:julia-ts-macro-face:@assert» all(t <: ArgRead  «k:for» t «k:in» map(first, ARG_READERS))
@@ -300,7 +300,7 @@ the path is not an argument to the do block in this form.
         «v:path» = tempname()
         «k:try» body(path, writer(path))
         «k:finally»
-            rm(path, «:julia-ts-quoted-symbol-face:force»=«c:true»)
+            rm(path, «:julia-ts-keyword-argument-face:force»=«c:true»)
         «k:end»
     «k:end»
 «k:end»

@@ -173,20 +173,20 @@ Base.«f:foo»(x) = x
 
 «f:⊗»(x, y) = x * y
 
-(+)(x, y) = x + y
+(«f:+»)(x, y) = x + y
 
 «x:# ==============================»
 «x:# function definition parameters»
 «x:# ==============================»
 
-«k:function» «f:f»(x, y::«t:Int», «:julia-ts-quoted-symbol-face:z»=«c:1», ws...) «k:end»
+«k:function» «f:f»(x, y::«t:Int», «:julia-ts-keyword-argument-face:z»=«c:1», ws...) «k:end»
 
 «k:function» (::«t:Type{Int}», x::«t:Int» = «c:1», y::«t:Int»...) «k:end»
 
 «k:function» «f:apply»(f, args...; kwargs...)
 «k:end»
 
-«k:function» «f:g»(; x, y::«t:Int», «:julia-ts-quoted-symbol-face:z» = «c:1», kwargs...) «b:nothing» «k:end»
+«k:function» «f:g»(; x, y::«t:Int», «:julia-ts-keyword-argument-face:z» = «c:1», kwargs...) «c:nothing» «k:end»
 
 «x:# ==================================================»
 «x:# function definition return types»
@@ -302,10 +302,10 @@ f()
 g(«s:"hi"», «c:2»)
 h(d...)
 
-f(e; «:julia-ts-quoted-symbol-face:f» = g)
+f(e; «:julia-ts-keyword-argument-face:f» = g)
 g(arg; kwarg)
 
-«k:new»{typeof(xs)}(xs)
+«t:new»{typeof(xs)}(xs)
 
 «x:# ========================================»
 «x:# function call expressions with do blocks»
@@ -368,7 +368,7 @@ Meta.«:julia-ts-macro-face:@dump» «v:x» = «c:1»
 «:julia-ts-interpolation-expression-face:$(»«D:obj.field»«:julia-ts-interpolation-expression-face:)»
 «:julia-ts-interpolation-expression-face:$»«D:f»(x)
 «:julia-ts-interpolation-expression-face:$»«D:f»[«c:1», «c:2»]
-$«s:"foo"»
+«:julia-ts-interpolation-expression-face:$»«s:"foo"»
 
 «k:using» «:julia-ts-interpolation-expression-face:$»«D:Package»: «:julia-ts-interpolation-expression-face:$(»«D:name»«:julia-ts-interpolation-expression-face:)»
 
@@ -517,7 +517,7 @@ nested #= comments =# =#»
 «x:# ==============================»
 
 «v:a» = b
-a .. b = a * b
+a «f:..» b = a * b
 «v:tup» = «c:1», «c:2», «c:3»
 «v:car», cdr... = list
 c &= d ÷= e
@@ -588,7 +588,7 @@ a .* b .+ c
 «x:# ==============================»
 
 «v:x» = +
-⪯ = .≤
+«v:⪯» = .≤
 print(:)
 foo(^, ÷, -)
 

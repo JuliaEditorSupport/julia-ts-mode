@@ -122,13 +122,17 @@ Otherwise, the indentation is:
   '((t :inherit font-lock-constant-face))
   "Face for quoted Julia symbols in `julia-ts-mode', e.g. :foo.")
 
+(defface julia-ts-keyword-argument-face
+  '((t :inherit font-lock-constant-face))
+  "Face for keyword argument names in `julia-ts-mode'.")
+
 (defface julia-ts-interpolation-expression-face
   '((t :inherit font-lock-constant-face))
-  "Face for interpolation expressions in `julia-ts-mode', e.g. :foo.")
+  "Face for interpolation expressions in `julia-ts-mode', e.g. $foo.")
 
 (defface julia-ts-string-interpolation-face
   '((t :inherit font-lock-constant-face :weight bold))
-  "Face for string interpolations in `julia-ts-mode', e.g. :foo.")
+  "Face for string interpolations in `julia-ts-mode', e.g. \"$foo\".")
 
 (defvar julia-ts--keywords
   '("baremodule" "begin" "catch" "const" "do" "else" "elseif" "end" "export"
@@ -140,7 +144,7 @@ Otherwise, the indentation is:
   (treesit-font-lock-rules
    :language 'julia
    :feature 'assignment
-   `((assignment (identifier) @font-lock-variable-name-face (_))
+   `((assignment :anchor [(identifier) (operator)] @font-lock-variable-name-face)
      (assignment
       :anchor
       (field_expression
@@ -156,15 +160,15 @@ Otherwise, the indentation is:
      ((let_statement _ @comma :anchor (identifier) @font-lock-variable-name-face)
       (:equal "," @comma))
      (let_binding :anchor (identifier) @font-lock-variable-name-face)
-     (global_statement (identifier) @font-lock-variable-name-face))
+     (global_statement (identifier) @font-lock-variable-name-face)
+     (named_argument (identifier) @julia-ts-keyword-argument-face (operator)))
 
    :language 'julia
    :feature 'constant
-   `((named_argument (identifier) @julia-ts-quoted-symbol-face (operator))
-     ((identifier) @font-lock-builtin-face
+   `(((identifier) @font-lock-constant-face
       (:match
-       "^\\(:?NaN\\|NaN16\\|NaN32\\|NaN64\\|Inf\\|Inf16\\|Inf32\\|Inf64\\|nothing\\|missing\\|undef\\)$"
-       @font-lock-builtin-face)))
+       "^\\(NaN\\|NaN16\\|NaN32\\|NaN64\\|Inf\\|Inf16\\|Inf32\\|Inf64\\|nothing\\|missing\\|undef\\)$"
+       @font-lock-constant-face)))
 
    :language 'julia
    :feature 'comment
@@ -228,6 +232,11 @@ Otherwise, the indentation is:
      (assignment
       :anchor
       (call_expression
+       (parenthesized_expression
+        [(identifier) (operator)] @font-lock-function-name-face)))
+     (assignment
+      :anchor
+      (call_expression
        (field_expression
         value: (identifier) "." (identifier) @font-lock-function-name-face)))
      (assignment
@@ -239,7 +248,10 @@ Otherwise, the indentation is:
       (where_expression
        (call_expression
         (field_expression
-         value: (identifier) "." (identifier) @font-lock-function-name-face)))))
+         value: (identifier) "." (identifier) @font-lock-function-name-face))))
+     (assignment
+      :anchor
+      (binary_expression _ (operator) @font-lock-function-name-face)))
 
    :language 'julia
    :feature 'error
@@ -270,24 +282,24 @@ Otherwise, the indentation is:
 
    :language 'julia
    :feature 'operator
-   `((adjoint_expression "'" @font-lock-type-face)
-     (let_binding (operator) @font-lock-type-face)
-     ((for_binding (operator) @font-lock-type-face)
-      (:match "^\\[=∈\\]$" @font-lock-type-face))
-     (arrow_function_expression "->" @font-lock-type-face)
-     (operator) @font-lock-type-face
-     (splat_expression "..." @font-lock-type-face)
-     (ternary_expression ["?" ":"] @font-lock-type-face)
-     (["." "::"] @font-lock-type-face))
+   `((adjoint_expression "'" @font-lock-keyword-face)
+     (let_binding (operator) @font-lock-keyword-face)
+     ((for_binding (operator) @font-lock-keyword-face)
+      (:match "^\\[=∈\\]$" @font-lock-keyword-face))
+     (arrow_function_expression "->" @font-lock-keyword-face)
+     (operator) @font-lock-keyword-face
+     (splat_expression "..." @font-lock-keyword-face)
+     (ternary_expression ["?" ":"] @font-lock-keyword-face)
+     (["." "::"] @font-lock-keyword-face))
 
    :language 'julia
    :feature 'interpolation
    :override 'keep
    `((interpolation_expression
-      "$" @julia-ts-interpolation-expression-face
+      "$" @julia-ts-interpolation-expression-face)
+     (interpolation_expression
       (identifier) @default)
      (interpolation_expression
-      "$" @julia-ts-interpolation-expression-face
       (parenthesized_expression
        "(" @julia-ts-interpolation-expression-face
        _ @default
@@ -333,13 +345,7 @@ Otherwise, the indentation is:
       (curly_expression "{" (identifier) @font-lock-type-face))
      (where_expression
       "where"
-      (curly_expression "{" (binary_expression (identifier) @font-lock-type-face))))
-
-   :language 'julia
-   :feature 'keyword
-   :override t
-   '((((identifier) @font-lock-keyword-face)
-      (:equal "new" @font-lock-keyword-face))))
+      (curly_expression "{" (binary_expression (identifier) @font-lock-type-face)))))
 
   "Tree-sitter font-lock settings for `julia-ts-mode'.")
 

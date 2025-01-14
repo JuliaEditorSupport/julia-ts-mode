@@ -41,7 +41,7 @@ resources are not cleaned up until `Downloader` is garbage collected.
     ca_roots::«t:Union»{«t:String», «t:Nothing»}
     easy_hook::«t:Union»{«t:Function», «t:Nothing»}
 
-    «f:Downloader»(multi::«t:Multi») = «k:new»(multi, get_ca_roots(), EASY_HOOK[])
+    «f:Downloader»(multi::«t:Multi») = new(multi, get_ca_roots(), EASY_HOOK[])
 «k:end»
 «f:Downloader»(; grace::«t:Real»=«c:30») = Downloader(Multi(grace_ms(grace)))
 
@@ -52,18 +52,18 @@ resources are not cleaned up until `Downloader` is garbage collected.
 
 «k:function» «f:easy_hook»(downloader::«t:Downloader», easy::«t:Easy», info::«t:NamedTuple»)
     «v:hook» = downloader.easy_hook
-    hook !== «b:nothing» && Base.invokelatest(hook, easy, info)
+    hook !== «c:nothing» && Base.invokelatest(hook, easy, info)
 «k:end»
 
 «f:get_ca_roots»() = Curl.SYSTEM_SSL ? ca_roots() : ca_roots_path()
 
 «k:function» «f:set_ca_roots»(downloader::«t:Downloader», easy::«t:Easy»)
     «v:ca_roots» = downloader.ca_roots
-    ca_roots !== «b:nothing» && set_ca_roots_path(easy, ca_roots)
+    ca_roots !== «c:nothing» && set_ca_roots_path(easy, ca_roots)
 «k:end»
 
 «k:const» «v:DOWNLOAD_LOCK» = ReentrantLock()
-«k:const» «v:DOWNLOADER» = «t:Ref»{«t:Union»{«t:Downloader», «t:Nothing»}}(«b:nothing»)
+«k:const» «v:DOWNLOADER» = «t:Ref»{«t:Union»{«t:Downloader», «t:Nothing»}}(«c:nothing»)
 
 «s:"""
 `EASY_HOOK` is a modifable global hook to used as the default `easy_hook` on
@@ -73,7 +73,7 @@ new `Downloader` objects. This supplies a mechanism to set options for the
 It is expected to be function taking two arguments: an `Easy` struct and an
 `info` NamedTuple with names `url`, `method` and `headers`.
 """»
-«k:const» «v:EASY_HOOK» = «t:Ref»{«t:Union»{«t:Function», «t:Nothing»}}(«b:nothing»)
+«k:const» «v:EASY_HOOK» = «t:Ref»{«t:Union»{«t:Function», «t:Nothing»}}(«c:nothing»)
 
 «s:"""
     struct Response
@@ -246,26 +246,26 @@ Downloads.download("https://httpbingo.julialang.org/delay/30"; downloader)
 """»
 «k:function» «f:download»(
     url        :: «t:AbstractString»,
-    output     :: «t:Union»{«t:ArgWrite», «t:Nothing»} = «b:nothing»;
-    method     :: «t:Union»{«t:AbstractString», «t:Nothing»} = «b:nothing»,
+    output     :: «t:Union»{«t:ArgWrite», «t:Nothing»} = «c:nothing»;
+    method     :: «t:Union»{«t:AbstractString», «t:Nothing»} = «c:nothing»,
     headers    :: «t:Union»{«t:AbstractVector», «t:AbstractDict»} = «t:Pair»{«t:String»,«t:String»}[],
-    timeout    :: «t:Real» = «b:Inf»,
-    progress   :: «t:Union»{«t:Function», «t:Nothing»} = «b:nothing»,
+    timeout    :: «t:Real» = «c:Inf»,
+    progress   :: «t:Union»{«t:Function», «t:Nothing»} = «c:nothing»,
     verbose    :: «t:Bool» = «c:false»,
-    debug      :: «t:Union»{«t:Function», «t:Nothing»} = «b:nothing»,
-    downloader :: «t:Union»{«t:Downloader», «t:Nothing»} = «b:nothing»,
+    debug      :: «t:Union»{«t:Function», «t:Nothing»} = «c:nothing»,
+    downloader :: «t:Union»{«t:Downloader», «t:Nothing»} = «c:nothing»,
 ) :: «t:ArgWrite»
     arg_write(output) «k:do» output
         «v:response» = request(
             url,
-            «:julia-ts-quoted-symbol-face:output» = output,
-            «:julia-ts-quoted-symbol-face:method» = method,
-            «:julia-ts-quoted-symbol-face:headers» = headers,
-            «:julia-ts-quoted-symbol-face:timeout» = timeout,
-            «:julia-ts-quoted-symbol-face:progress» = progress,
-            «:julia-ts-quoted-symbol-face:verbose» = verbose,
-            «:julia-ts-quoted-symbol-face:debug» = debug,
-            «:julia-ts-quoted-symbol-face:downloader» = downloader,
+            «:julia-ts-keyword-argument-face:output» = output,
+            «:julia-ts-keyword-argument-face:method» = method,
+            «:julia-ts-keyword-argument-face:headers» = headers,
+            «:julia-ts-keyword-argument-face:timeout» = timeout,
+            «:julia-ts-keyword-argument-face:progress» = progress,
+            «:julia-ts-keyword-argument-face:verbose» = verbose,
+            «:julia-ts-keyword-argument-face:debug» = debug,
+            «:julia-ts-keyword-argument-face:downloader» = downloader,
         )::«t:Response»
         status_ok(response) && «k:return» output
         throw(RequestError(url, Curl.CURLE_OK, «s:""», response))
@@ -327,33 +327,33 @@ running request, for example if the user wants to cancel a download.
 """»
 «k:function» «f:request»(
     url        :: «t:AbstractString»;
-    input      :: «t:Union»{«t:ArgRead», «t:Nothing»} = «b:nothing»,
-    output     :: «t:Union»{«t:ArgWrite», «t:Nothing»} = «b:nothing»,
-    method     :: «t:Union»{«t:AbstractString», «t:Nothing»} = «b:nothing»,
+    input      :: «t:Union»{«t:ArgRead», «t:Nothing»} = «c:nothing»,
+    output     :: «t:Union»{«t:ArgWrite», «t:Nothing»} = «c:nothing»,
+    method     :: «t:Union»{«t:AbstractString», «t:Nothing»} = «c:nothing»,
     headers    :: «t:Union»{«t:AbstractVector», «t:AbstractDict»} = «t:Pair»{«t:String»,«t:String»}[],
-    timeout    :: «t:Real» = «b:Inf»,
-    progress   :: «t:Union»{«t:Function», «t:Nothing»} = «b:nothing»,
+    timeout    :: «t:Real» = «c:Inf»,
+    progress   :: «t:Union»{«t:Function», «t:Nothing»} = «c:nothing»,
     verbose    :: «t:Bool» = «c:false»,
-    debug      :: «t:Union»{«t:Function», «t:Nothing»} = «b:nothing»,
+    debug      :: «t:Union»{«t:Function», «t:Nothing»} = «c:nothing»,
     throw      :: «t:Bool» = «c:true»,
-    downloader :: «t:Union»{«t:Downloader», «t:Nothing»} = «b:nothing»,
-    interrupt  :: «t:Union»{«t:Nothing», Base.Event} = «b:nothing»,
+    downloader :: «t:Union»{«t:Downloader», «t:Nothing»} = «c:nothing»,
+    interrupt  :: «t:Union»{«t:Nothing», Base.Event} = «c:nothing»,
 ) :: «t:Union»{«t:Response», «t:RequestError»}
-    «k:if» downloader === «b:nothing»
+    «k:if» downloader === «c:nothing»
         lock(DOWNLOAD_LOCK) «k:do»
             «v:downloader» = DOWNLOADER[]
-            «k:if» downloader === «b:nothing»
+            «k:if» downloader === «c:nothing»
                 «v:downloader» = DOWNLOADER[] = Downloader()
             «k:end»
         «k:end»
     «k:end»
     «k:local» «v:response»
-    «v:have_input» = input !== «b:nothing»
-    «v:have_output» = output !== «b:nothing»
+    «v:have_input» = input !== «c:nothing»
+    «v:have_output» = output !== «c:nothing»
     «v:input» = something(input, devnull)
     «v:output» = something(output, devnull)
     «v:input_size» = arg_read_size(input)
-    «k:if» input_size === «b:nothing»
+    «k:if» input_size === «c:nothing»
         «x:# take input_size from content-length header if one is supplied»
         «v:input_size» = content_length(headers)
     «k:end»
@@ -377,7 +377,7 @@ running request, for example if the user wants to cancel a download.
 
                 «k:if» have_input
                     enable_upload(easy)
-                    «k:if» input_size !== «b:nothing»
+                    «k:if» input_size !== «c:nothing»
                         set_upload_size(easy, input_size)
                     «k:end»
                     «k:if» applicable(seek, input, «c:0»)
@@ -388,8 +388,8 @@ running request, for example if the user wants to cancel a download.
                 «k:else»
                     set_body(easy, have_output && method != «s:"HEAD"»)
                 «k:end»
-                method !== «b:nothing» && set_method(easy, method)
-                progress !== «b:nothing» && enable_progress(easy)
+                method !== «c:nothing» && set_method(easy, method)
+                progress !== «c:nothing» && enable_progress(easy)
                 set_ca_roots(downloader, easy)
                 «v:info» = (url = url, method = method, headers = headers)
                 easy_hook(downloader, easy, info)
@@ -397,7 +397,7 @@ running request, for example if the user wants to cancel a download.
                 «x:# do the request»
                 add_handle(downloader.multi, easy)
                 «v:interrupted» = Threads.Atomic{«t:Bool»}(«c:false»)
-                «k:if» interrupt !== «b:nothing»
+                «k:if» interrupt !== «c:nothing»
                     «v:interrupt_task» = «:julia-ts-macro-face:@async» «k:begin»
                         «x:# wait for the interrupt event»
                         wait(interrupt)
@@ -410,14 +410,14 @@ running request, for example if the user wants to cancel a download.
                         notify(easy.ready)
                     «k:end»
                 «k:else»
-                    «v:interrupt_task» = «b:nothing»
+                    «v:interrupt_task» = «c:nothing»
                 «k:end»
                 «k:try» «x:# ensure handle is removed»
                     «:julia-ts-macro-face:@sync» «k:begin»
                         «:julia-ts-macro-face:@async» «k:for» buf «k:in» easy.output
                             write(output, buf)
                         «k:end»
-                        «k:if» progress !== «b:nothing»
+                        «k:if» progress !== «c:nothing»
                             «:julia-ts-macro-face:@async» «k:for» prog «k:in» easy.progress
                                 progress(prog...)
                             «k:end»
@@ -428,7 +428,7 @@ running request, for example if the user wants to cancel a download.
                     «k:end»
                 «k:finally»
                     «k:if» !(interrupted[])
-                        «k:if» interrupt_task !== «b:nothing»
+                        «k:if» interrupt_task !== «c:nothing»
                             «x:# trigger interrupt»
                             notify(interrupt)
                             wait(interrupt_task)
@@ -471,12 +471,12 @@ running request, for example if the user wants to cancel a download.
     (dl_total, dl_now, ul_total, ul_now) ->
         progress(dl_total + ul_total, dl_now + ul_now)
 «k:end»
-«f:p_func»(progress::«t:Nothing», input::«t:ArgRead», output::«t:ArgWrite») = «b:nothing»
+«f:p_func»(progress::«t:Nothing», input::«t:ArgRead», output::«t:ArgWrite») = «c:nothing»
 
 «f:arg_read_size»(path::«t:AbstractString») = filesize(path)
 «f:arg_read_size»(io::Base.«t:GenericIOBuffer») = bytesavailable(io)
 «f:arg_read_size»(::«t:Base.DevNull») = «c:0»
-«f:arg_read_size»(::«t:Any») = «b:nothing»
+«f:arg_read_size»(::«t:Any») = «c:nothing»
 
 «k:function» «f:content_length»(headers::«t:Union»{«t:AbstractVector», «t:AbstractDict»})
     «k:for» (key, value) «k:in» headers
@@ -484,7 +484,7 @@ running request, for example if the user wants to cancel a download.
             «k:return» tryparse(Int, value)
         «k:end»
     «k:end»
-    «k:return» «b:nothing»
+    «k:return» «c:nothing»
 «k:end»
 
 «s:"""
@@ -497,7 +497,7 @@ running request, for example if the user wants to cancel a download.
 Set the default `Downloader`. If no argument is provided, resets the default downloader so that a fresh one is created the next time the default downloader is needed.
 """»
 «k:function» «f:default_downloader!»(
-    downloader :: «t:Union»{«t:Downloader», «t:Nothing»} = «b:nothing»
+    downloader :: «t:Union»{«t:Downloader», «t:Nothing»} = «c:nothing»
 )
     lock(DOWNLOAD_LOCK) «k:do»
         DOWNLOADER[] = downloader
@@ -509,7 +509,7 @@ Set the default `Downloader`. If no argument is provided, resets the default dow
     Curl.__init__()
     «v:d» = Downloader()
     «v:f» = mktemp()[«c:1»]
-    download(«s:"file://"» * f; «:julia-ts-quoted-symbol-face:downloader»=d)
+    download(«s:"file://"» * f; «:julia-ts-keyword-argument-face:downloader»=d)
     precompile(«t:Tuple»{typeof(Downloads.download), «t:String», «t:String»})
     precompile(«t:Tuple»{typeof(Downloads.Curl.status_2xx_ok), «t:Int64»})
 «k:end»
