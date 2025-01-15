@@ -282,15 +282,15 @@ Otherwise, the indentation is:
 
    :language 'julia
    :feature 'operator
-   `((adjoint_expression "'" @font-lock-keyword-face)
-     (let_binding (operator) @font-lock-keyword-face)
+   `((adjoint_expression "'" @font-lock-operator-face)
+     (let_binding (operator) @font-lock-operator-face)
      ((for_binding (operator) @font-lock-keyword-face)
       (:match "^\\[=∈\\]$" @font-lock-keyword-face))
      (arrow_function_expression "->" @font-lock-keyword-face)
-     (operator) @font-lock-keyword-face
-     (splat_expression "..." @font-lock-keyword-face)
+     (operator) @font-lock-operator-face
+     (splat_expression "..." @font-lock-misc-punctuation-face)
      (ternary_expression ["?" ":"] @font-lock-keyword-face)
-     (["." "::"] @font-lock-keyword-face))
+     (["." "::"] @font-lock-operator-face))
 
    :language 'julia
    :feature 'interpolation
