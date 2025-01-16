@@ -227,7 +227,7 @@ Base.«f:foo»(x) = x
     n
 «k:end»
 
-f(n::«t:N», m::«t:M») «k:where» {«t:N» <: «t:Number»} «k:where» {«t:M» <: «t:Integer»} = n^m
+«f:f»(n::«t:N», m::«t:M») «k:where» {«t:N» <: «t:Number»} «k:where» {«t:M» <: «t:Integer»} = n^m
 
 «t:Foo»{«t:T»}(x::«t:T») «k:where» {«t:T»} = x
 
@@ -466,10 +466,10 @@ a -> «v:a» = «c:2», «c:3»
 «x:# ==============================»
 
 «s:""»
-«s:"\""»
+«s:"»«:font-lock-escape-face:\"»«s:"»
 «s:"foo
  bar"»
-«s:"this is a \"string\"."»
+«s:"this is a »«:font-lock-escape-face:\"»«s:string»«:font-lock-escape-face:\"»«s:."»
 «s:"""this is also a "string"."""»
 «v:band» = «s:"Interpol"»
 «s:"»«:julia-ts-string-interpolation-face:$»«D:band»«s: is a cool band"»
@@ -483,19 +483,18 @@ a -> «v:a» = «c:2», «c:3»
 «s:`pwd`»
 «s:m`pwd`»
 «s:`cd »«:julia-ts-string-interpolation-face:$»«D:dir»«s:`»
-«s:`echo \`cmd\``»
+«s:`echo »«:font-lock-escape-face:\`»«s:cmd»«:font-lock-escape-face:\`»«s:`»
 «s:```
-echo "\033[31mred\033[m"
+echo "»«:font-lock-escape-face:\033»«s:[31mred»«:font-lock-escape-face:\033»«s:[m"
 ```»
 
 «x:# ==============================»
 «x:# non-standard string literals»
 «x:# ==============================»
 
-«x:# FIXME: \s shouldn't be an escape_sequence here»
-«v:trailing_ws» = «s:r"\s+$"»
+«v:trailing_ws» = «:font-lock-regexp-face:r"\s+$"»
 «v:version» = «s:v"1.0"»
-«s:K"\\"»
+«s:K"»«:font-lock-escape-face:\\»«s:"»
 
 «x:# ==============================»
 «x:# comments»
@@ -519,8 +518,19 @@ nested #= comments =# =#»
 «v:a» = b
 a «f:..» b = a * b
 «v:tup» = «c:1», «c:2», «c:3»
-«v:car», cdr... = list
+«v:car», «v:cdr»... = list
 c &= d ÷= e
+
+«x:# open tuple»
+«v:a», «v:b» = «c:1», «c:2»
+«x:# regular tuple»
+(«v:a», «v:b») = («c:1», «c:2»)
+«x:# typed assignment»
+«v:a»::«t:Int» = «c:1»
+«x:# FQN»
+Main.«v:a» = «c:12»
+«x:# combination»
+«v:a»::«t:Int», «v:b»::«t:Int»... = «c:1», «c:2», «c:3»
 
 «x:# ==============================»
 «x:# binary arithmetic operators»
