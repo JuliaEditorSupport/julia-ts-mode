@@ -144,23 +144,24 @@ Otherwise, the indentation is:
   (treesit-font-lock-rules
    :language 'julia
    :feature 'assignment
-   `((assignment :anchor [(identifier) (operator)] @font-lock-variable-name-face)
-     (assignment
-      :anchor
-      (field_expression
-       value: (identifier) "." (identifier) @font-lock-variable-name-face))
-     (assignment (open_tuple (identifier) @font-lock-variable-name-face))
-     (assignment
-      :anchor
-      (open_tuple
-       (field_expression
-        value: (identifier) "." (identifier) @font-lock-variable-name-face)))
-     (local_statement (identifier) @font-lock-variable-name-face)
+   `(;; plain assignments
+     ([(identifier) (operator)] @font-lock-variable-name-face @lhs
+      (:pred julia-ts--assignment-left-side-p @lhs))
+     ;; qualified name assignments
+     ((field_expression "." (identifier) @font-lock-variable-name-face) @lhs
+      (:pred julia-ts--assignment-left-side-p @lhs))
+     ;; typed assignments
+     ((typed_expression (identifier) @font-lock-variable-name-face "::") @lhs
+      (:pred julia-ts--assignment-left-side-p @lhs))
+     ;; let blocks
      (let_statement :anchor (identifier) @font-lock-variable-name-face)
      ((let_statement _ @comma :anchor (identifier) @font-lock-variable-name-face)
       (:equal "," @comma))
      (let_binding :anchor (identifier) @font-lock-variable-name-face)
+     ;; local and global statements
+     (local_statement (identifier) @font-lock-variable-name-face)
      (global_statement (identifier) @font-lock-variable-name-face)
+     ;; named (keyword) argument names with assigned values
      (named_argument (identifier) @julia-ts-keyword-argument-face (operator)))
 
    :language 'julia
@@ -177,81 +178,27 @@ Otherwise, the indentation is:
 
    :language 'julia
    :feature 'definition
-   `((function_definition
+   `(;; function declaration
+     (function_definition
       (signature (identifier) @font-lock-function-name-face))
-     (function_definition
-      (signature
-       (call_expression [(identifier) (operator)] @font-lock-function-name-face)))
-     (function_definition
-      (signature
-       (typed_expression
-        (call_expression [(identifier) (operator)] @font-lock-function-name-face))))
-     (function_definition
-      (signature
-       (where_expression
-        (call_expression [(identifier) (operator)] @font-lock-function-name-face))))
-     (function_definition
-      (signature
-       (where_expression
-        (typed_expression
-        (call_expression [(identifier) (operator)] @font-lock-function-name-face)))))
-     (function_definition
-      (signature
-       (call_expression
-        (field_expression
-         value: (identifier) "." (identifier) @font-lock-function-name-face))))
-     (function_definition
-      (signature
-       (typed_expression
-        (call_expression
-         (field_expression
-          value: (identifier) "." (identifier) @font-lock-function-name-face)))))
-     (macro_definition
-      (signature
-       (call_expression (identifier) @font-lock-function-name-face)))
-     (macro_definition
-      (signature
-       (call_expression
-        (field_expression
-         value: (identifier) "." (identifier) @font-lock-function-name-face))))
-     (abstract_definition
-      (type_head (identifier) @font-lock-type-face))
-     (abstract_definition
-      (type_head (binary_expression (identifier) @font-lock-type-face)))
-     (primitive_definition
-      (type_head (identifier) @font-lock-type-face))
-     (primitive_definition
-      (type_head (binary_expression (identifier) @font-lock-type-face)))
-     (struct_definition
-      (type_head (identifier) @font-lock-type-face))
-     (struct_definition
-      (type_head (binary_expression (identifier) @font-lock-type-face)))
+     ;; function definitions (long and short syntax)
+     (call_expression
+      [(identifier) (operator)] @font-lock-function-name-face
+      (:pred julia-ts--fundef-name-p @font-lock-function-name-face))
+     (call_expression
+      (parenthesized_expression
+       [(identifier) (operator)] @font-lock-function-name-face)
+      (:pred julia-ts--fundef-name-p @font-lock-function-name-face))
+     (call_expression
+      (field_expression "." [(identifier) (operator)] @font-lock-function-name-face)
+      (:pred julia-ts--fundef-name-p @font-lock-function-name-face))
+     ;; binary operator definition as assignment
      (assignment
       :anchor
-      (call_expression [(identifier) (operator)] @font-lock-function-name-face))
-     (assignment
-      :anchor
-      (call_expression
-       (parenthesized_expression
-        [(identifier) (operator)] @font-lock-function-name-face)))
-     (assignment
-      :anchor
-      (call_expression
-       (field_expression
-        value: (identifier) "." (identifier) @font-lock-function-name-face)))
-     (assignment
-      :anchor
-      (where_expression
-       (call_expression (identifier) @font-lock-function-name-face)))
-     (assignment
-      :anchor
-      (where_expression
-       (call_expression
-        (field_expression
-         value: (identifier) "." (identifier) @font-lock-function-name-face))))
-     (assignment
-      :anchor
-      (binary_expression _ (operator) @font-lock-function-name-face)))
+      (binary_expression _ (operator) @font-lock-function-name-face))
+     ;; struct/abstract type/primitive type definitions
+     (type_head (identifier) @font-lock-type-face)
+     (type_head (binary_expression (identifier) @font-lock-type-face)))
 
    :language 'julia
    :feature 'error
@@ -314,6 +261,12 @@ Otherwise, the indentation is:
    :feature 'constant
    :override 'keep
    `((quote_expression) @julia-ts-quoted-symbol-face)
+
+   :language 'julia
+   :feature 'string
+   '(((escape_sequence) @font-lock-escape-face)
+     ((prefixed_string_literal prefix: _ @prefix) @font-lock-regexp-face
+      (:equal "r" @prefix)))
 
    :language 'julia
    :feature 'string
@@ -431,6 +384,33 @@ Return nil if there is no name or if NODE is not a defun node."
         node
         (lambda (child)
           (equal (treesit-node-type child) type)))))
+
+(defun julia-ts--assignment-left-side-p (node)
+  "Return non-nil if NODE is the left hand side of an `assignment'.
+It may be wrapped (within the `'assignment') in an `open_tuple'
+or a `tuple_expression' (but only one of those two), and/or a
+`splat_expression' as well."
+  (let* ((p1 (treesit-node-parent node))
+         (p2 (if (equal (treesit-node-type p1) "splat_expression")
+                 (treesit-node-parent p1) p1))
+         (p3 (if (member (treesit-node-type p2) '("open_tuple" "tuple_expression"))
+                 (treesit-node-parent p2) p2)))
+    (and (equal (treesit-node-type p3) "assignment")
+         (member (treesit-node-child p3 0) (list p2 p1 node)))))
+
+(defun julia-ts--fundef-name-p (node)
+  "Return non-nil if NODE is the name of a function definition.
+NODE is recognized as such if it has an ancestor that is either a
+`signature' (long syntax) or an `assignment' (short syntax), via
+the ancestor's first child."
+  (let ((prev node))
+    (treesit-parent-until
+     node
+     (lambda (ancestor)
+       (prog1
+           (and (member (treesit-node-type ancestor) '("signature" "assignment"))
+                (equal (treesit-node-child ancestor 0) prev))
+         (setq prev ancestor))))))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.jl\\'" . julia-ts-mode))

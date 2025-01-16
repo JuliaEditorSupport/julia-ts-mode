@@ -149,7 +149,7 @@ in which case both the inner and outer code and message may be of interest.
     «v:errstr» = err.message
     «v:status» = err.response.status
     «v:message» = err.response.message
-    «v:status_re» = Regex(status == «c:0» ? «s:""» : «s:"\\b»«:julia-ts-string-interpolation-face:$»«D:status»«s:\\b"»)
+    «v:status_re» = Regex(status == «c:0» ? «s:""» : «s:"»«:font-lock-escape-face:\\»«s:b»«:julia-ts-string-interpolation-face:$»«D:status»«:font-lock-escape-face:\\»«s:b"»)
 
     err.code == Curl.CURLE_OK &&
         «k:return» isempty(message) ? «s:"Error status »«:julia-ts-string-interpolation-face:$»«D:status»«s:"» :
