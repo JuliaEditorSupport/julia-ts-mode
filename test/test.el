@@ -4,6 +4,7 @@
 
 ;;; Code:
 (require 'faceup)
+(require 'julia-ts-mode)
 
 (defvar julia-font-lock-test-dir (faceup-this-file-directory))
 

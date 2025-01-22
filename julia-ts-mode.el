@@ -31,7 +31,7 @@
 ;;
 ;;; Commentary:
 ;; This major modes uses tree-sitter for font-lock, indentation, imenu, and
-;; navigation. It is derived from `julia-mode'.
+;; navigation.  It is derived from `julia-mode'.
 
 ;;;; Code:
 
@@ -53,6 +53,13 @@
   :prefix "julia-ts-")
 ;; Notice that all custom variables and faces are automatically added to the
 ;; most recent group.
+
+;; As of the grammar version 0.22, it uses the argument_list node for both
+;; function definitions and calls.
+(define-obsolete-variable-alias
+  'julia-ts-align-parameter-list-to-first-sibling
+  'julia-ts-align-argument-list-to-first-sibling
+  "0.3")
 
 (defcustom julia-ts-align-argument-list-to-first-sibling nil
   "Align the argument list to the first sibling.
@@ -86,13 +93,6 @@ Otherwise, the indentation is:
   :version "29.1"
   :type 'boolean)
 
-;; As of the grammar version 0.22, it uses the argument_list node for both
-;; function definitions and calls.
-(define-obsolete-variable-alias
-  'julia-ts-align-parameter-list-to-first-sibling
-  'julia-ts-align-argument-list-to-first-sibling
-  "0.3")
-
 (defcustom julia-ts-align-curly-brace-expressions-to-first-sibling nil
   "Align curly brace expressions to the first sibling.
 
@@ -120,7 +120,7 @@ Otherwise, the indentation is:
 
 (defface julia-ts-quoted-symbol-face
   '((t :inherit font-lock-constant-face))
-  "Face for quoted Julia symbols in `julia-ts-mode', e.g. :foo.")
+  "Face for quoted Julia symbols in `julia-ts-mode', e.g., :foo.")
 
 (defface julia-ts-keyword-argument-face
   '((t :inherit font-lock-constant-face))
@@ -128,11 +128,11 @@ Otherwise, the indentation is:
 
 (defface julia-ts-interpolation-expression-face
   '((t :inherit font-lock-constant-face))
-  "Face for interpolation expressions in `julia-ts-mode', e.g. $foo.")
+  "Face for interpolation expressions in `julia-ts-mode', e.g., $foo.")
 
 (defface julia-ts-string-interpolation-face
   '((t :inherit font-lock-constant-face :weight bold))
-  "Face for string interpolations in `julia-ts-mode', e.g. \"$foo\".")
+  "Face for string interpolations in `julia-ts-mode', e.g., \"$foo\".")
 
 (defvar julia-ts--keywords
   '("baremodule" "begin" "catch" "const" "do" "else" "elseif" "end" "export"
