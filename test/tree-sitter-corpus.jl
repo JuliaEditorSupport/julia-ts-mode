@@ -492,7 +492,6 @@ echo "\033[31mred\033[m"
 # non-standard string literals
 # ==============================
 
-# FIXME: \s shouldn't be an escape_sequence here
 trailing_ws = r"\s+$"
 version = v"1.0"
 K"\\"
@@ -521,6 +520,17 @@ a .. b = a * b
 tup = 1, 2, 3
 car, cdr... = list
 c &= d ÷= e
+
+# open tuple
+a, b = 1, 2
+# regular tuple
+(a, b) = (1, 2)
+# typed assignment
+a::Int = 1
+# FQN
+Main.a = 12
+# combination
+a::Int, b::Int... = 1, 2, 3
 
 # ==============================
 # binary arithmetic operators
